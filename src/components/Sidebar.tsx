@@ -1,6 +1,7 @@
-import { LayoutGrid, Upload, Bell, Users, BookOpen, UserCircle } from 'lucide-react';
+import { LayoutGrid, Upload, Bell, Users, BookOpen, UserCircle, ChevronsLeft } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, notificationCount = 0 }: any) {
+// Add 'onClose' to the props definition
+export default function Sidebar({ activeTab, setActiveTab, notificationCount = 0, onClose }: any) {
   const menu = [
     { id: 'marketplace', icon: <LayoutGrid size={20} />, label: 'Marketplace' },
     { id: 'upload', icon: <Upload size={20} />, label: 'Upload Resource' },
@@ -8,7 +9,6 @@ export default function Sidebar({ activeTab, setActiveTab, notificationCount = 0
       id: 'requests', 
       icon: <Bell size={20} />, 
       label: 'Incoming Requests',
-      // Add badge logic here
       hasBadge: true 
     },
     { id: 'consumers', icon: <Users size={20} />, label: 'My Consumers' },
@@ -17,10 +17,23 @@ export default function Sidebar({ activeTab, setActiveTab, notificationCount = 0
   ];
 
   return (
-    <aside className="w-64 bg-white h-screen border-r border-slate-100 p-8 flex flex-col">
-      <div className="flex items-center gap-3 mb-16">
-        <div className="w-10 h-10 bg-[#00ED64] rounded-xl flex items-center justify-center text-black font-black text-xl shadow-lg shadow-[#00ED64]/10">C</div>
-        <span className="text-xl font-bold text-slate-900 tracking-tight">CampusHub</span>
+    <aside className="w-64 bg-white h-screen border-r border-slate-100 p-8 flex flex-col relative">
+      
+      {/* HEADER WITH LOGO AND CLOSE ARROW */}
+      <div className="flex items-center justify-between mb-16">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#00ED64] rounded-xl flex items-center justify-center text-black font-black text-xl shadow-lg shadow-[#00ED64]/10">C</div>
+          <span className="text-xl font-bold text-slate-900 tracking-tight">CampusHub</span>
+        </div>
+
+        {/* NEW HIDE BUTTON */}
+        <button 
+          onClick={onClose}
+          className="p-2 text-slate-300 hover:text-[#00ED64] hover:bg-slate-50 rounded-full transition-all"
+          title="Collapse Sidebar"
+        >
+          <ChevronsLeft size={24} />
+        </button>
       </div>
       
       <nav className="space-y-4 flex-1">
