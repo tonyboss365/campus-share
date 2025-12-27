@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-const OPENROUTER_API_KEY = "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";
+// FIX: Use Environment Variable for Vercel Deployment
+const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
 // --- VISUAL COMPONENTS ---
 
@@ -419,7 +420,7 @@ export default function Home() {
           await updateDoc(doc(db, "resources", paymentResource.id), { approvedUsers: arrayUnion({ uid: user?.uid, expiresAt: Timestamp.fromDate(expiryDate), name: user?.displayName || "Student" }) });
           handleToast(`Payment Successful! Access Granted to ${paymentResource.title}`, 'success');
           setPaymentResource(null); setOwnerQr(null); setActiveTab('library');
-      } catch(err) { handleToast(err, 'error'); } finally { setGlobalLoading(false); }
+      } catch(err: any) { handleToast(err, 'error'); } finally { setGlobalLoading(false); }
   };
 
   const handleApprove = async (resId: string, req: any) => { 
@@ -489,7 +490,7 @@ export default function Home() {
       if (canvasRef.current) canvasData = canvasRef.current.toDataURL("image/png");
       await setDoc(doc(db, "users", user.uid, "study_data", viewingFile.id), { note: personalNote, canvasData, updatedAt: Timestamp.now(), title: viewingFile.title }, { merge: true });
       handleToast("Saved Successfully!", 'success');
-    } catch(err) { handleToast(err, 'error'); }
+    } catch(err: any) { handleToast(err, 'error'); }
   };
 
   const startDrawing = (e: React.MouseEvent) => { if (!isPenActive || !canvasRef.current) return; const ctx = canvasRef.current.getContext('2d'); if (!ctx) return; ctx.beginPath(); ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); setIsDrawing(true); };
