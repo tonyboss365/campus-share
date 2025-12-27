@@ -140,21 +140,21 @@ const ProfileSection = ({ user, handleToast }: { user: User, handleToast: any })
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-full animate-in zoom-in duration-500">
-            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-white max-w-md w-full text-center relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center h-full animate-in zoom-in duration-500 w-full">
+            <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl border border-white max-w-md w-full text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#00ED64] to-[#001E2B]"></div>
-                <UserAvatar user={user} className="w-24 h-24 rounded-full mx-auto border-4 border-[#00ED64] mb-4 shadow-lg object-cover" />
-                <h2 className="text-2xl font-black text-[#001E2B]">{user.displayName}</h2>
-                <p className="text-slate-400 text-sm font-medium mb-8">{user.email}</p>
-                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 mb-6">
+                <UserAvatar user={user} className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto border-4 border-[#00ED64] mb-4 shadow-lg object-cover" />
+                <h2 className="text-xl md:text-2xl font-black text-[#001E2B]">{user.displayName}</h2>
+                <p className="text-slate-400 text-xs md:text-sm font-medium mb-8">{user.email}</p>
+                <div className="bg-slate-50 p-4 md:p-6 rounded-[2rem] border border-slate-100 mb-6">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Merchant Settings</p>
                     {qrImage ? (
                         <div className="relative group cursor-pointer" onClick={() => fileInput.current?.click()}>
-                            <img src={qrImage} className="w-40 h-40 mx-auto rounded-xl border-2 border-dashed border-slate-300 object-cover" />
+                            <img src={qrImage} className="w-32 h-32 md:w-40 md:h-40 mx-auto rounded-xl border-2 border-dashed border-slate-300 object-cover" />
                             <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold text-xs">Change QR</div>
                         </div>
                     ) : (
-                        <button onClick={() => fileInput.current?.click()} className="w-full h-40 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-[#00ED64] hover:text-[#00ED64] transition-all bg-white">
+                        <button onClick={() => fileInput.current?.click()} className="w-full h-32 md:h-40 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-[#00ED64] hover:text-[#00ED64] transition-all bg-white">
                             <UploadCloud size={32} className="mb-2"/>
                             <span className="text-xs font-bold">Upload Payment QR</span>
                         </button>
@@ -207,7 +207,7 @@ const ChatWindow = ({ chat: initialChat, user, onClose, onSend, onRead }: any) =
   const otherUserLastRead = chatData.lastRead?.[otherParticipantId]?.seconds || 0;
 
   return (
-    <div className="fixed bottom-24 right-4 md:right-24 z-[1000] w-[90%] md:w-96 h-[500px] bg-white rounded-[32px] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 font-sans">
+    <div className="fixed bottom-0 md:bottom-24 right-0 md:right-24 z-[1000] w-full md:w-96 h-[80vh] md:h-[500px] bg-white rounded-t-[32px] md:rounded-[32px] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-20 duration-300 font-sans">
       <div className="bg-[#001E2B] p-4 flex justify-between items-center text-white cursor-pointer" onClick={onClose}>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-[#00ED64] rounded-full text-[#001E2B]"><MessageCircle size={18}/></div>
@@ -604,7 +604,7 @@ export default function Home() {
   };
 
   if (!user) return (
-    <div className="h-screen w-screen bg-[#001E2B] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen w-screen bg-[#001E2B] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
       
       {/* Background Elements */}
       <div className="absolute inset-0 z-0">
@@ -614,20 +614,20 @@ export default function Home() {
       </div>
 
       {/* LOGIN CARD */}
-      <div className="z-10 w-full max-w-5xl h-[600px] bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-2xl flex overflow-hidden animate-in zoom-in duration-500">
+      <div className="z-10 w-full max-w-5xl min-h-[600px] md:h-[600px] bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-2xl flex flex-col md:flex-row overflow-hidden animate-in zoom-in duration-500">
         
         {/* Left Side: Hero */}
-        <div className="flex-1 bg-gradient-to-br from-[#00ED64]/20 to-transparent p-12 flex flex-col justify-center relative">
-            <div className="absolute top-10 left-10"><Cloud size={40} className="text-[#00ED64]" /></div>
-            <h1 className="text-5xl font-black text-white leading-tight mb-6 tracking-tight">
+        <div className="flex-1 bg-gradient-to-br from-[#00ED64]/20 to-transparent p-8 md:p-12 flex flex-col justify-center relative">
+            <div className="absolute top-6 left-6 md:top-10 md:left-10"><Cloud size={40} className="text-[#00ED64]" /></div>
+            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4 md:mb-6 tracking-tight mt-12 md:mt-0">
                 Connect.<br/>
                 Share.<br/>
                 <span className="text-[#00ED64]">Excel.</span>
             </h1>
-            <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-sm">
+            <p className="text-slate-400 text-sm md:text-lg font-medium leading-relaxed max-w-sm">
                 The exclusive academic resource marketplace for top engineering colleges.
             </p>
-            <div className="mt-12 flex gap-4 items-center">
+            <div className="mt-8 md:mt-12 flex gap-4 items-center">
                 <div className="flex -space-x-4">
                      {/* 1. KLH */}
                      <img src="https://www.google.com/s2/favicons?domain=klh.edu.in&sz=128" className="w-10 h-10 rounded-full border-2 border-[#001E2B] bg-white object-contain p-1" />
@@ -646,11 +646,11 @@ export default function Home() {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="flex-1 bg-[#001E2B]/80 p-12 flex flex-col justify-center items-center text-center">
+        <div className="flex-1 bg-[#001E2B]/80 p-8 md:p-12 flex flex-col justify-center items-center text-center">
             <div className="mb-8 p-4 bg-white/5 rounded-full border border-white/10 shadow-inner">
                 <LockKeyhole size={32} className="text-[#00ED64]"/>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">Student Login</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Student Login</h2>
             <p className="text-slate-400 text-sm mb-8">Please use your official college email ID to continue.</p>
             
             <button onClick={handleLogin} className="w-full max-w-xs bg-white text-[#001E2B] py-4 rounded-2xl font-bold text-lg hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,237,100,0.4)] transition-all flex items-center justify-center gap-3 group">
@@ -679,8 +679,8 @@ export default function Home() {
     </div>
   );
 
-  const mainMargin = isSidebarOpen ? 'ml-64' : 'ml-0';
-  const viewerWidthClass = isChatOpen ? 'w-[calc(100%-450px)]' : 'w-full';
+  const mainMargin = isSidebarOpen ? 'md:ml-64' : 'ml-0';
+  const viewerWidthClass = isChatOpen ? 'w-full md:w-[calc(100%-450px)]' : 'w-full';
 
   return (
     <div className="flex min-h-screen text-[#001E2B] font-sans overflow-hidden relative">
@@ -689,14 +689,17 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all"><Menu size={24} className="text-[#001E2B]" /></button>}
+      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block md:hidden"><Menu size={24} className="text-[#001E2B]" /></button>}
 
-      <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out ${isSidebarOpen && !viewingFile && !paymentResource ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+        ${viewingFile || paymentResource ? '-translate-x-full' : ''} 
+        md:translate-x-0`}>
          <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} />
-         <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden"><X /></button>
+         <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden text-white"><X /></button>
       </div>
       
-      <main className={`flex-1 ${mainMargin} p-12 transition-all duration-500 relative h-screen overflow-y-auto cloud-scrollbar z-10 ${isChatOpen ? 'mr-[450px]' : 'mr-0'}`}>
+      <main className={`flex-1 ${mainMargin} p-4 md:p-12 transition-all duration-500 relative h-screen overflow-y-auto cloud-scrollbar z-10 ${isChatOpen ? 'md:mr-[450px]' : 'mr-0'}`}>
         {!viewingFile && !paymentResource && activeTab !== 'upload' && <Watermark />}
         {!viewingFile && !paymentResource && activeTab === 'profile' && <ProfileSection user={user} handleToast={handleToast} />}
 
@@ -704,7 +707,7 @@ export default function Home() {
         {paymentResource && (
             <div className="fixed inset-0 z-50 bg-[#001E2B] flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-10 fade-in">
                 <div className="absolute top-10 left-10"><button onClick={() => { setPaymentResource(null); setOwnerQr(null); }} className="text-white flex items-center gap-2 hover:text-[#00ED64] transition-colors"><ArrowLeft/> Cancel Transaction</button></div>
-                <div className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-lg w-full text-center relative overflow-hidden">
+                <div className="bg-white p-6 md:p-10 rounded-[3rem] shadow-2xl max-w-lg w-full text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-2 bg-[#00ED64]"></div>
                     <div className="mb-6 flex justify-center"><div className="p-4 bg-[#00ED64]/10 rounded-full text-[#00ED64]"><Wallet size={48}/></div></div>
                     <h2 className="text-2xl font-black text-[#001E2B] mb-2">Secure Checkout</h2>
@@ -736,12 +739,12 @@ export default function Home() {
 
         {/* HEADER */}
         {!viewingFile && !paymentResource && activeTab !== 'profile' && (
-          <header className="flex flex-col gap-8 mb-12 pl-4 relative z-10">
-            <div className="flex justify-between items-center">
-              <h2 className="text-4xl font-extrabold tracking-tight text-[#001E2B] drop-shadow-sm uppercase">
+          <header className="flex flex-col gap-4 md:gap-8 mb-8 md:mb-12 pl-0 md:pl-4 relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-[#001E2B] drop-shadow-sm uppercase pt-10 md:pt-0">
                 {activeTab === 'upload' ? 'Upload' : activeTab === 'library' ? 'Library' : activeTab === 'consumers' ? 'Users' : activeTab === 'requests' ? 'Requests & Messages' : (selectedCollege && !selectedSubject) ? selectedCollege : (selectedCollege && selectedSubject) ? selectedSubject : 'Discover'}
               </h2>
-              <div className="flex items-center gap-4 bg-white/70 backdrop-blur-xl px-6 py-3 rounded-full border border-white shadow-lg">
+              <div className="flex items-center gap-4 bg-white/70 backdrop-blur-xl px-6 py-3 rounded-full border border-white shadow-lg w-full md:w-auto justify-between md:justify-start">
                  <div className="text-right hidden md:block"><p className="text-[10px] font-black text-[#00ED64] uppercase">Verified</p><p className="font-bold text-sm text-[#001E2B]">{user.displayName}</p></div>
                  
                  {/* SMART AVATAR (FALLBACK ENABLED) */}
@@ -751,9 +754,9 @@ export default function Home() {
               </div>
             </div>
             {activeTab === 'marketplace' && selectedCollege && selectedSubject && (
-              <div className="flex gap-4 animate-in slide-in-from-left-10">
+              <div className="flex flex-col md:flex-row gap-4 animate-in slide-in-from-left-10">
                 <div className="flex-1 relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} /><input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by title..." className="w-full bg-white p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] shadow-sm font-medium" /></div>
-                <div className="relative group"><div className="absolute inset-y-0 left-4 flex items-center pointer-events-none"><Filter size={18} className="text-[#00ED64]" /></div><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-full bg-white pl-12 pr-8 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] shadow-sm font-bold text-sm text-[#001E2B] cursor-pointer"><option value="newest">Newest First</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option></select></div>
+                <div className="relative group w-full md:w-auto"><div className="absolute inset-y-0 left-4 flex items-center pointer-events-none"><Filter size={18} className="text-[#00ED64]" /></div><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full md:w-auto h-14 md:h-full bg-white pl-12 pr-8 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] shadow-sm font-bold text-sm text-[#001E2B] cursor-pointer appearance-none"><option value="newest">Newest First</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option></select></div>
               </div>
             )}
           </header>
@@ -762,12 +765,12 @@ export default function Home() {
         {/* VIEWER */}
         {viewingFile && !paymentResource && (
           <div className={`fixed top-0 left-0 bottom-0 z-[40] bg-[#001E2B] flex flex-col transition-all duration-500 ${viewerWidthClass}`}>
-             <div className="flex justify-between items-center p-4 bg-[#001E2B] text-white border-b border-white/10 pl-20">
+             <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-[#001E2B] text-white border-b border-white/10 pl-4 md:pl-20 gap-4">
                 <div className="flex items-center gap-4">
                   <button onClick={() => { setViewingFile(null); setIsSidebarOpen(true); setIsPenActive(false); }} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors uppercase text-xs font-bold tracking-widest"><ArrowLeft size={16} /> Exit</button>
-                  <h3 className="text-lg font-bold tracking-tight truncate max-w-[250px]">{viewingFile.title}</h3>
+                  <h3 className="text-lg font-bold tracking-tight truncate max-w-[200px] md:max-w-[250px]">{viewingFile.title}</h3>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
                    <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
                       <button onClick={() => { setIsPenActive(!isPenActive); setToolType('pen'); }} className={`p-2 rounded-full transition-all ${isPenActive && toolType === 'pen' ? 'bg-[#00ED64] text-[#001E2B] shadow-lg scale-110' : 'text-white hover:bg-white/10'}`} title="Pen"><PenTool size={18} /></button>
                       <button onClick={() => { setIsPenActive(true); setToolType('highlighter'); setPenColor('#FFFF00'); }} className={`p-2 rounded-full transition-all ${isPenActive && toolType === 'highlighter' ? 'bg-yellow-400 text-[#001E2B] shadow-lg scale-110' : 'text-white hover:bg-white/10'}`} title="Highlighter"><Highlighter size={18} /></button>
@@ -784,7 +787,7 @@ export default function Home() {
              </div>
              <div className="flex-1 w-full bg-white relative overflow-hidden">
                 <canvas ref={canvasRef} width={window.innerWidth} height={window.innerHeight} className={`absolute inset-0 z-50 touch-none ${isPenActive ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} />
-                <div className={`absolute top-0 right-0 h-full w-80 bg-[#fefce8] border-l border-yellow-200 z-[60] shadow-2xl transition-transform duration-300 transform ${isNotesOpen ? 'translate-x-0' : 'translate-x-full'} p-6 flex flex-col`}>
+                <div className={`absolute top-0 right-0 h-full w-full md:w-80 bg-[#fefce8] border-l border-yellow-200 z-[60] shadow-2xl transition-transform duration-300 transform ${isNotesOpen ? 'translate-x-0' : 'translate-x-full'} p-6 flex flex-col`}>
                    <div className="flex justify-between items-center mb-4"><h3 className="font-black text-yellow-800 flex items-center gap-2"><StickyNote size={18}/> My Notes</h3><button onClick={() => setIsNotesOpen(false)} className="text-yellow-600 hover:text-yellow-800"><X size={18}/></button></div>
                    <textarea value={personalNote} onChange={(e) => setPersonalNote(e.target.value)} placeholder="Type your study notes here..." className="flex-1 w-full bg-transparent outline-none resize-none text-sm text-slate-700 font-medium leading-relaxed" />
                    <p className="text-[10px] text-yellow-600 mt-2 italic text-center">Auto-saved to your profile</p>
@@ -797,11 +800,11 @@ export default function Home() {
         <div className="relative z-10">
             {/* LEVEL 1: Colleges */}
             {!viewingFile && !paymentResource && activeTab === 'marketplace' && !selectedCollege && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                 {colleges.map(college => (
-                <button key={college} onClick={() => setSelectedCollege(college)} className="group bg-white/60 backdrop-blur-md p-10 rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
-                    <div className="p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><School size={32} /></div>
-                    <h3 className="text-2xl font-bold text-[#001E2B] relative z-10">{college}</h3>
+                <button key={college} onClick={() => setSelectedCollege(college)} className="group bg-white/60 backdrop-blur-md p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
+                    <div className="p-4 md:p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-6 md:mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><School size={28} /></div>
+                    <h3 className="text-xl md:text-2xl font-bold text-[#001E2B] relative z-10">{college}</h3>
                     <div className="absolute -bottom-10 -right-10 opacity-0 group-hover:opacity-100 group-hover:-translate-y-10 transition-all duration-700 ease-out"><Cloud size={140} className="text-[#00ED64]/20" fill="currentColor" /></div>
                 </button>
                 ))}
@@ -812,11 +815,11 @@ export default function Home() {
             {!viewingFile && !paymentResource && activeTab === 'marketplace' && selectedCollege && !selectedSubject && (
             <div className="space-y-6">
                 <button onClick={() => setSelectedCollege(null)} className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-[#00ED64] flex items-center gap-2"><ArrowLeft size={16}/> Back to Colleges</button>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                 {subjects.length > 0 ? subjects.map(sub => (
-                    <button key={sub} onClick={() => setSelectedSubject(sub)} className="group bg-white/60 backdrop-blur-md p-10 rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
-                    <div className="p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><LayoutGrid size={32} /></div>
-                    <h3 className="text-2xl font-bold text-[#001E2B] relative z-10">{sub}</h3>
+                    <button key={sub} onClick={() => setSelectedSubject(sub)} className="group bg-white/60 backdrop-blur-md p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
+                    <div className="p-4 md:p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-6 md:mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><LayoutGrid size={28} /></div>
+                    <h3 className="text-xl md:text-2xl font-bold text-[#001E2B] relative z-10">{sub}</h3>
                     <div className="absolute -bottom-10 -right-10 opacity-0 group-hover:opacity-100 group-hover:-translate-y-10 transition-all duration-700 ease-out"><Cloud size={140} className="text-[#00ED64]/20" fill="currentColor" /></div>
                     </button>
                 )) : (
@@ -831,7 +834,7 @@ export default function Home() {
             (activeTab === 'marketplace' && selectedCollege && selectedSubject) || 
             activeTab === 'library'
             ) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
                 {activeTab === 'marketplace' && <button onClick={() => setSelectedSubject(null)} className="col-span-full text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 hover:text-[#00ED64] flex items-center gap-2"><ArrowLeft size={16}/> Back to Subjects</button>}
                 {filteredResources.length > 0 ? filteredResources.map((item: any) => (
                 <ResourceCard 
@@ -851,7 +854,7 @@ export default function Home() {
 
             {/* CONSUMERS */}
             {!viewingFile && !paymentResource && activeTab === 'consumers' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                 {resources.filter(r => r.ownerId === user?.uid && r.approvedUsers?.length > 0).length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40"><Users size={64} className="mb-4"/><p className="font-bold text-lg">No active students.</p></div>
                 ) : (
@@ -923,7 +926,7 @@ export default function Home() {
                    <h3 className="text-xl font-black text-[#001E2B] mb-6 flex items-center gap-2">
                       <ShieldCheck className="text-amber-500" /> Access Approvals
                    </h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                       {resources.filter(r => r.ownerId === user?.uid && r.requests?.length > 0).length === 0 ? (
                          <div className="col-span-full flex flex-col items-center justify-center py-10 opacity-40"><p className="font-bold text-sm">No pending access requests.</p></div>
                       ) : (
@@ -954,7 +957,7 @@ export default function Home() {
       </main>
 
       {/* AI SIDEBAR */}
-      <div className={`fixed top-0 right-0 h-full bg-white/80 backdrop-blur-3xl border-l border-white/50 shadow-[-30px_0_100px_rgba(0,30,43,0.15)] transition-all duration-500 z-[500] flex flex-col ${isChatOpen ? 'w-[450px]' : 'w-0 overflow-hidden'}`}>
+      <div className={`fixed top-0 right-0 h-full bg-white/80 backdrop-blur-3xl border-l border-white/50 shadow-[-30px_0_100px_rgba(0,30,43,0.15)] transition-all duration-500 z-[500] flex flex-col ${isChatOpen ? 'w-full md:w-[450px]' : 'w-0 overflow-hidden'}`}>
         <div className="p-6 border-b border-white/50 flex justify-between items-center bg-gradient-to-r from-[#001E2B] to-[#002b3d] text-white">
            <div className="flex items-center gap-4">
              <BrainCircuit className="text-[#00ED64]" size={28} />
@@ -1003,8 +1006,8 @@ export default function Home() {
       </div>
       
       {!isChatOpen && !viewingFile && !paymentResource && (
-        <button onClick={() => setIsChatOpen(true)} className="fixed bottom-10 right-10 z-[600] w-20 h-20 bg-[#001E2B] text-[#00ED64] rounded-[32px] flex items-center justify-center shadow-[0_20px_60px_rgba(0,30,43,0.4)] hover:scale-110 hover:-translate-y-2 transition-all border-4 border-[#00ED64]/20 group">
-          <BrainCircuit size={32} className="group-hover:animate-pulse" />
+        <button onClick={() => setIsChatOpen(true)} className="fixed bottom-10 right-10 z-[600] w-14 h-14 md:w-20 md:h-20 bg-[#001E2B] text-[#00ED64] rounded-[24px] md:rounded-[32px] flex items-center justify-center shadow-[0_20px_60px_rgba(0,30,43,0.4)] hover:scale-110 hover:-translate-y-2 transition-all border-4 border-[#00ED64]/20 group">
+          <BrainCircuit size={28} className="md:w-8 md:h-8 group-hover:animate-pulse" />
         </button>
       )}
 
