@@ -689,13 +689,13 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block md:hidden"><Menu size={24} className="text-[#001E2B]" /></button>}
+      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all"><Menu size={24} className="text-[#001E2B]" /></button>}
 
       <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         ${viewingFile || paymentResource ? '-translate-x-full' : ''} 
-        md:translate-x-0`}>
-         <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} />
+        md:translate-x-0:false`}>
+         <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} onClose={() => setIsSidebarOpen(false)} />
          <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden text-white"><X /></button>
       </div>
       
