@@ -1,4 +1,10 @@
-LIVE LINK [https://campus-share-eight.vercel.app/]
+**LIVE LINK :** [https://campus-share-eight.vercel.app/]
+
+
+**NOTE: LOGIN ONLY THROUGH YOUR COLLEGE DOMAIN.
+IF LOGIN IN USING GOOGLE USE COLLEGE ACCOUNT ONLY.
+ONLY COLLEGE DOMAINS ARE ALLOWED
+THANK YOU**
 
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
