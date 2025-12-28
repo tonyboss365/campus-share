@@ -24,11 +24,19 @@ import ReactMarkdown from 'react-markdown';
 // FIX: Use Environment Variable for Vercel Deployment
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-// --- 1. MASTER LIST OF COLLEGES (Ensures these always show up) ---
+// --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
 const MASTER_COLLEGES = [
-  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
-  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
-  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
+  "KL University",
+  "JNTUH",
+  "Osmania University",
+  "CBIT",
+  "VNR VJIET",
+  "Vasavi College",
+  "Gokaraju Rangaraju",
+  "Sreenidhi (SNIST)",
+  "Mahindra University",
+  "IIT Hyderabad",
+  "IIIT Hyderabad",
   "BITS Hyderabad"
 ];
 
@@ -352,6 +360,7 @@ export default function Home() {
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [globalLoading, setGlobalLoading] = useState(false); 
+  // FIX: DEFAULT SIDEBAR OPEN STATE
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -808,12 +817,21 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block md:hidden"><Menu size={24} className="text-[#001E2B]" /></button>}
+      {/* FIX: REMOVED md:hidden FROM BUTTON SO IT SHOWS ON DESKTOP WHEN SIDEBAR IS CLOSED */}
+      {!isSidebarOpen && !viewingFile && !paymentResource && (
+         <button 
+           onClick={() => setIsSidebarOpen(true)} 
+           className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block"
+         >
+           <Menu size={24} className="text-[#001E2B]" />
+         </button>
+      )}
 
+      {/* FIX: REMOVED md:translate-x-0 TO ALLOW CLOSING ON DESKTOP */}
       <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-        ${viewingFile || paymentResource ? '-translate-x-full' : ''} 
-        md:translate-x-0`}>
+        ${viewingFile || paymentResource ? '-translate-x-full' : ''}`}
+      >
          <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} onClose={() => setIsSidebarOpen(false)} />
          <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden text-white"><X /></button>
       </div>
