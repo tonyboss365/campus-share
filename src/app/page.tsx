@@ -9,18 +9,8 @@ import {
   updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp,
   setDoc, getDoc, where 
 } from 'firebase/firestore';
-// FIX: Added specific auth imports for mobile compatibility
-import { 
-  onAuthStateChanged, 
-  User, 
-  signOut, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult, 
-  GoogleAuthProvider,
-  setPersistence,
-  browserLocalPersistence
-} from 'firebase/auth';
+// FIX: Imports for robust mobile auth
+import { onAuthStateChanged, User, signOut, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { 
   BrainCircuit, Send, X, ShieldCheck, 
   LogOut, LayoutGrid, Users, Cloud, 
@@ -370,7 +360,7 @@ export default function Home() {
   const isFirstLoad = useRef(true);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  const [globalLoading, setGlobalLoading] = useState(true); 
+  const [globalLoading, setGlobalLoading] = useState(true); // START WITH LOADING TRUE
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -408,36 +398,21 @@ export default function Home() {
       setTimeout(() => setToast(null), 4000); 
   };
 
-  // --- MOBILE LOGIN FIX: REDIRECT RECOVERY + AUTH LISTENER ---
+  // --- MOBILE LOGIN FIX: USE REDIRECT + UNIFIED AUTH LISTENER ---
+  
   useEffect(() => {
-    // 1. Check for Redirect Result First (for Mobile/Safari)
-    getRedirectResult(auth).then((result) => {
-        if (result) {
-            console.log("Redirect login successful");
-            // Auth listener will handle the state update, we just ensure no loading
-        }
-    }).catch((error: any) => {
-        console.error("Redirect Error:", error);
-        // Only show error if it's NOT the "missing initial state" harmless one
-        if (error.code !== 'auth/web-storage-unsupported') {
-            // handleToast("Login failed. Please try again.", "error");
-        }
-        setGlobalLoading(false);
-    });
-
-    // 2. Auth State Listener
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
-            // Corrected regex
             const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\.in|jntuh\.ac\.in)$/;
 
             if (!allowedDomains.test(email)) {
                 await signOut(auth);
-                handleToast("Access Restricted: College Email Required.", "error");
+                handleToast("Access Restricted: Official College Email Required.", "error");
                 setUser(null);
             } else {
                 setUser(currentUser);
+                // Load Resources only when user is valid
                 const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
                 onSnapshot(q, {
                     next: (snap) => setResources(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -449,36 +424,31 @@ export default function Home() {
             setResources([]);
             setInboxChats([]);
         }
+        setGlobalLoading(false); // Stop loading regardless of result
+    });
+
+    // Handle Redirect Result (Mobile)
+    getRedirectResult(auth).catch((error) => {
+        console.error("Redirect Error:", error);
+        handleToast("Login failed via redirect.", "error");
         setGlobalLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Updated Login Handler (Popup First, Redirect Fallback)
+  // Updated Login Handler
   const handleLogin = async () => {
     setGlobalLoading(true);
     const provider = new GoogleAuthProvider();
-    // Forces account selection to avoid cached bad sessions
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-        // Try Popup First (Best for Desktop & Modern Mobile)
-        await setPersistence(auth, browserLocalPersistence); // Try to force local storage
         await signInWithPopup(auth, provider);
     } catch (error: any) {
-        console.error("Popup Failed/Blocked, trying Redirect:", error);
-        
-        // If Popup blocked (common on mobile), fallback to Redirect
+        // If Popup fails (Mobile), use Redirect
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-             try {
-                await signInWithRedirect(auth, provider);
-             } catch (redirectError) {
-                console.error("Redirect Failed:", redirectError);
-                handleToast("Login failed. Please disable pop-up blockers.", "error");
-                setGlobalLoading(false);
-             }
+             await signInWithRedirect(auth, provider);
         } else {
+             console.error(error);
              handleToast("Login failed. Please try again.", "error");
              setGlobalLoading(false);
         }
