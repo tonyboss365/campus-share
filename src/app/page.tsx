@@ -27,17 +27,9 @@ const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
 // --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
 const MASTER_COLLEGES = [
-  "KL University",
-  "JNTUH",
-  "Osmania University",
-  "CBIT",
-  "VNR VJIET",
-  "Vasavi College",
-  "Gokaraju Rangaraju",
-  "Sreenidhi (SNIST)",
-  "Mahindra University",
-  "IIT Hyderabad",
-  "IIIT Hyderabad",
+  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
+  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
+  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
   "BITS Hyderabad"
 ];
 
@@ -594,6 +586,117 @@ export default function Home() {
     return res.sort((a, b) => sortBy === 'newest' ? (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) : (Number(a.price) || 0) - (Number(b.price) || 0));
   }, [resources, activeTab, selectedCollege, selectedSubject, searchQuery, sortBy, user]);
 
+  useEffect(() => {
+    if (viewingFile && user && isPenActive && canvasRef.current) {
+      const loadStudyData = async () => {
+        if (canvasRef.current) { const ctx = canvasRef.current.getContext('2d'); ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); }
+        const docRef = doc(db, "users", user.uid, "study_data", viewingFile.id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setPersonalNote(data.note || "");
+          if (data.canvasData) { const img = new Image(); img.src = data.canvasData; img.onload = () => { const ctx = canvasRef.current?.getContext('2d'); ctx?.drawImage(img, 0, 0); }; }
+        } else { setPersonalNote(""); }
+      };
+      setTimeout(loadStudyData, 100);
+    }
+  }, [viewingFile, user, isPenActive]);
+
+  const handleSaveStudyData = async () => {
+    if (!user || !viewingFile) return;
+    try {
+      let canvasData = null;
+      if (canvasRef.current) canvasData = canvasRef.current.toDataURL("image/png");
+      await setDoc(doc(db, "users", user.uid, "study_data", viewingFile.id), { note: personalNote, canvasData, updatedAt: Timestamp.now(), title: viewingFile.title }, { merge: true });
+      handleToast("Saved Successfully!", 'success');
+    } catch(err: any) { handleToast(err, 'error'); }
+  };
+
+  const startDrawing = (e: React.MouseEvent) => { if (!isPenActive || !canvasRef.current) return; const ctx = canvasRef.current.getContext('2d'); if (!ctx) return; ctx.beginPath(); ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); setIsDrawing(true); };
+  const draw = (e: React.MouseEvent) => { if (!isDrawing || !isPenActive || !canvasRef.current) return; const ctx = canvasRef.current.getContext('2d'); if (!ctx) return; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; if (toolType === 'eraser') { ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = 1.0; ctx.lineWidth = 30; } else if (toolType === 'highlighter') { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.5; ctx.strokeStyle = penColor; ctx.lineWidth = 25; } else { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1.0; ctx.strokeStyle = penColor; ctx.lineWidth = 3; } ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY); ctx.stroke(); };
+  const stopDrawing = () => { setIsDrawing(false); if (canvasRef.current) { const ctx = canvasRef.current.getContext('2d'); ctx?.closePath(); ctx!.globalCompositeOperation = 'source-over'; ctx!.globalAlpha = 1.0; } };
+  const clearCanvas = () => { if (canvasRef.current) { const ctx = canvasRef.current.getContext('2d'); ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); } };
+
+  const startNewChat = () => { if (chatHistory.length > 0) { setSavedSessions(prev => [{ id: Date.now().toString(), title: chatHistory[0].text.substring(0, 30) + "...", messages: chatHistory }, ...prev]); } setChatHistory([]); setIsHistoryOpen(false); };
+  const loadSession = (session: any) => { if (chatHistory.length > 0) { setSavedSessions(prev => [{ id: Date.now().toString(), title: "Saved Session", messages: chatHistory }, ...prev]); } setChatHistory(session.messages); setIsHistoryOpen(false); };
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result as string); reader.readAsDataURL(file); } };
+  const sendChatMessage = async () => { if (!chatInput.trim() && !selectedImage) return; setChatHistory(prev => [...prev, { role: 'user', text: chatInput, image: selectedImage || undefined }]); const currentInput = chatInput; const currentImage = selectedImage; setChatInput(""); setSelectedImage(null); setIsTyping(true); try { const messageContent: any[] = [{ type: "text", text: currentInput || "Analyze this." }]; if (currentImage) messageContent.push({ type: "image_url", image_url: { url: currentImage } }); const response = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { "Authorization": `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "http://localhost:3000", "X-Title": "CampusCloud" }, body: JSON.stringify({ model: "openai/gpt-4o-mini", messages: [{ "role": "system", "content": "You are a helpful academic tutor." }, { "role": "user", "content": messageContent }] }) }); const data = await response.json(); setChatHistory(prev => [...prev, { role: 'assistant', text: data.choices?.[0]?.message?.content || "No response." }]); } catch { setChatHistory(prev => [...prev, { role: 'assistant', text: "Connection error." }]); } finally { setIsTyping(false); } };
+
+  const handleDownload = (fileUrl: string) => { window.open(fileUrl, '_blank'); };
+  
+  const handleAction = async (resource: any, actionType: 'buy' | 'request' | 'chat') => {
+    if (!user) return;
+
+    if (actionType === 'chat') {
+       setGlobalLoading(true);
+       try {
+         const chatId = `${resource.id}_${user.uid}_${resource.ownerId}`;
+         const chatDocRef = doc(db, "chats", chatId);
+         const chatSnap = await getDoc(chatDocRef);
+
+         if (chatSnap.exists()) {
+            setActiveChat({ id: chatSnap.id, ...chatSnap.data() });
+         } else {
+            const newChatData = {
+               participants: [user.uid, resource.ownerId],
+               participantsData: [
+                 { uid: user.uid, name: user.displayName || "User", photo: user.photoURL },
+                 { uid: resource.ownerId, name: resource.ownerName || "Owner", photo: null } 
+               ],
+               resourceId: resource.id,
+               resourceTitle: resource.title,
+               messages: [],
+               lastUpdated: Timestamp.now(),
+               lastRead: { [user.uid]: Timestamp.now() }
+            };
+            await setDoc(chatDocRef, newChatData);
+            setActiveChat({ id: chatId, ...newChatData });
+         }
+       } catch (err: any) {
+         handleToast("Could not open chat", 'error');
+         console.error(err);
+       } finally { setGlobalLoading(false); }
+       return;
+    }
+
+    if (actionType === 'buy') {
+        setGlobalLoading(true);
+        try {
+            const ownerSnap = await getDoc(doc(db, "users", resource.ownerId));
+            if(ownerSnap.exists()) setOwnerQr(ownerSnap.data().upiQr || null);
+            setPaymentResource(resource);
+        } catch(error) { handleToast(error, 'error'); } finally { setGlobalLoading(false); }
+    } else {
+        if (resource.requests?.some((r: any) => r.uid === user.uid)) { handleToast("Request already pending!", 'error'); return; }
+        setGlobalLoading(true);
+        try { 
+            await updateDoc(doc(db, "resources", resource.id), { 
+                requests: arrayUnion({ uid: user.uid, name: user.displayName || "Student", photo: user.photoURL || "", requestedAt: Timestamp.now() }) 
+            }); 
+            handleToast("Request Sent Successfully!", 'success'); 
+        } catch(err: any) { handleToast(err, 'error'); } finally { setGlobalLoading(false); }
+    }
+  };
+
+  const handleSendMessage = async (chatId: string, text: string) => {
+    if (!user) return;
+    try {
+      const message = {
+        senderId: user.uid,
+        text: text,
+        timestamp: Timestamp.now()
+      };
+      await updateDoc(doc(db, "chats", chatId), {
+        messages: arrayUnion(message),
+        lastUpdated: Timestamp.now(),
+        [`lastRead.${user.uid}`]: Timestamp.now() 
+      });
+    } catch (err) {
+      console.error(err);
+      handleToast("Failed to send", 'error');
+    }
+  };
+
   // --- MOBILE LOGIN FIX: USE REDIRECT INSTEAD OF POPUP ---
   
   // 1. Listen for redirect result when component mounts
@@ -614,17 +717,18 @@ export default function Home() {
            }
         } catch (error) {
            console.error("Redirect login error:", error);
+           // Not showing toast to avoid spam on normal load
         }
      };
      checkRedirect();
   }, []);
 
-  // 2. Updated Login Handler to use Redirect for mobile
+  // 2. Updated Login Handler to use Redirect
   const handleLogin = async () => {
     try {
         setGlobalLoading(true);
         const provider = new GoogleAuthProvider();
-        // Standard Popup for Desktop, but redirect is more reliable globally
+        // Use signInWithRedirect for robust mobile support
         await signInWithRedirect(auth, provider);
     } catch (error: any) {
         console.error(error);
@@ -719,14 +823,17 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {/* FIXED: Re-enabled Menu button for desktop when closed */}
+      {/* FIX: REMOVED md:hidden FROM BUTTON SO IT SHOWS ON DESKTOP WHEN SIDEBAR IS CLOSED */}
       {!isSidebarOpen && !viewingFile && !paymentResource && (
-         <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block">
+         <button 
+           onClick={() => setIsSidebarOpen(true)} 
+           className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block"
+         >
            <Menu size={24} className="text-[#001E2B]" />
          </button>
       )}
 
-      {/* FIXED: Removed forced desktop opening to allow hiding sidebar on laptop too */}
+      {/* FIX: REMOVED md:translate-x-0 TO ALLOW CLOSING ON DESKTOP */}
       <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         ${viewingFile || paymentResource ? '-translate-x-full' : ''}`}
