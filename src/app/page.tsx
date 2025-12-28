@@ -9,8 +9,7 @@ import {
   updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp,
   setDoc, getDoc, where 
 } from 'firebase/firestore';
-// FIX: Added signInWithRedirect and getRedirectResult for mobile support
-import { onAuthStateChanged, User, signOut, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { 
   BrainCircuit, Send, X, ShieldCheck, 
   LogOut, LayoutGrid, Users, Cloud, 
@@ -27,9 +26,17 @@ const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
 // --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
 const MASTER_COLLEGES = [
-  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
-  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
-  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
+  "KL University",
+  "JNTUH",
+  "Osmania University",
+  "CBIT",
+  "VNR VJIET",
+  "Vasavi College",
+  "Gokaraju Rangaraju",
+  "Sreenidhi (SNIST)",
+  "Mahindra University",
+  "IIT Hyderabad",
+  "IIIT Hyderabad",
   "BITS Hyderabad"
 ];
 
@@ -586,6 +593,7 @@ export default function Home() {
     return res.sort((a, b) => sortBy === 'newest' ? (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) : (Number(a.price) || 0) - (Number(b.price) || 0));
   }, [resources, activeTab, selectedCollege, selectedSubject, searchQuery, sortBy, user]);
 
+  // --- REST OF THE LOGIC ---
   useEffect(() => {
     if (viewingFile && user && isPenActive && canvasRef.current) {
       const loadStudyData = async () => {
@@ -697,42 +705,27 @@ export default function Home() {
     }
   };
 
-  // --- MOBILE LOGIN FIX: USE REDIRECT INSTEAD OF POPUP ---
-  
-  // 1. Listen for redirect result when component mounts
-  useEffect(() => {
-     const checkRedirect = async () => {
-        try {
-           const result = await getRedirectResult(auth);
-           if (result) {
-               const email = result.user.email || '';
-               // Corrected regex with proper escapes
-               const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\.in|jntuh\.ac\.in)$/;
-               if (!allowedDomains.test(email)) {
-                   await signOut(auth);
-                   handleToast("Access Restricted: College Email Required", "error");
-               } else {
-                   handleToast("Welcome back!", "success");
-               }
-           }
-        } catch (error) {
-           console.error("Redirect login error:", error);
-           // Not showing toast to avoid spam on normal load
-        }
-     };
-     checkRedirect();
-  }, []);
-
-  // 2. Updated Login Handler to use Redirect
+  // --- LOGIN WITH DOMAIN CHECK ---
   const handleLogin = async () => {
     try {
         setGlobalLoading(true);
         const provider = new GoogleAuthProvider();
-        // Use signInWithRedirect for robust mobile support
-        await signInWithRedirect(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const email = result.user.email || '';
+        
+        // ALLOWED DOMAINS REGEX
+        const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\\.in|jntuh\.ac\.in)$/;
+
+        if (!allowedDomains.test(email)) {
+            await signOut(auth); // Instant logout if invalid
+            handleToast("Access Restricted: Please use your official College Email ID.", "error");
+        } else {
+            handleToast("Welcome back!", "success");
+        }
     } catch (error: any) {
         console.error(error);
         handleToast("Login failed. Please try again.", "error");
+    } finally {
         setGlobalLoading(false);
     }
   };
