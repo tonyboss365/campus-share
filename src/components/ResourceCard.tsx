@@ -1,5 +1,5 @@
 'use client';
-import { Lock, Eye, Cloud, Trash2, MapPin, User as UserIcon, Download, ShoppingBag, Loader2, ShoppingCart, Key, MessageCircle, Hand } from 'lucide-react';
+import { Lock, Eye, Cloud, Trash2, MapPin, User as UserIcon, Download, ShoppingBag, Loader2, ShoppingCart, Key, MessageCircle, Hand, Layers } from 'lucide-react';
 
 export default function ResourceCard({ item, user, onAction, onView, onDelete, onDownload }: any) {
   if (!item) return null; 
@@ -75,11 +75,21 @@ export default function ResourceCard({ item, user, onAction, onView, onDelete, o
             <p className="text-[10px] font-black text-[#00ED64] uppercase tracking-widest mb-1">{item.category || 'RESOURCE'}</p>
             <h4 className="text-lg font-bold text-[#001E2B] mb-1 leading-tight line-clamp-2">{item.title}</h4>
             
-            <p className="text-xs text-slate-400 line-clamp-1 mb-4 flex items-center gap-2">
-               <UserIcon size={10} /> {item.ownerName?.split(' ')[0] || 'Student'} 
-               <span className="text-slate-300">•</span> 
-               <MapPin size={10} /> {item.college || 'Campus'}
-            </p>
+            {/* --- UPDATED METADATA SECTION: USER • COLLEGE • GROUP --- */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+                <p className="text-xs text-slate-400 line-clamp-1 flex items-center gap-2">
+                    <UserIcon size={10} /> {item.ownerName?.split(' ')[0] || 'Student'} 
+                    <span className="text-slate-300">•</span> 
+                    <MapPin size={10} /> {item.college || 'Campus'}
+                </p>
+
+                {/* New Group Badge - Only shows if group exists */}
+                {item.group && item.group !== 'OTHER' && (
+                    <span className="text-[9px] font-bold text-[#001E2B] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                        <Layers size={9} /> {item.group}
+                    </span>
+                )}
+            </div>
 
             <div className="mt-auto pt-4 border-t border-slate-50 z-20">
                {hasAccess ? (
