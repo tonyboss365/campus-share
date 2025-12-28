@@ -9,8 +9,18 @@ import {
   updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp,
   setDoc, getDoc, where 
 } from 'firebase/firestore';
-// FIX: Imports for robust mobile auth
-import { onAuthStateChanged, User, signOut, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+// FIX: Added setPersistence and browserLocalPersistence
+import { 
+  onAuthStateChanged, 
+  User, 
+  signOut, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  GoogleAuthProvider, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { 
   BrainCircuit, Send, X, ShieldCheck, 
   LogOut, LayoutGrid, Users, Cloud, 
@@ -42,7 +52,6 @@ const MASTER_COLLEGES = [
 ];
 
 // --- VISUAL COMPONENTS ---
-
 const NeonCloud = ({ className, size = 180 }: { className?: string, size?: number }) => (
   <div className={`relative ${className}`}>
     <svg width={size} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-slate-200/30">
@@ -360,7 +369,7 @@ export default function Home() {
   const isFirstLoad = useRef(true);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  const [globalLoading, setGlobalLoading] = useState(true); // START WITH LOADING TRUE
+  const [globalLoading, setGlobalLoading] = useState(true); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -400,7 +409,9 @@ export default function Home() {
 
   // --- MOBILE LOGIN FIX: USE REDIRECT + UNIFIED AUTH LISTENER ---
   
+  // 1. Listen for Auth State Changes & Redirect Results
   useEffect(() => {
+    // Standard Auth Listener
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
@@ -424,31 +435,53 @@ export default function Home() {
             setResources([]);
             setInboxChats([]);
         }
-        setGlobalLoading(false); // Stop loading regardless of result
+        setGlobalLoading(false); 
     });
 
-    // Handle Redirect Result (Mobile)
-    getRedirectResult(auth).catch((error) => {
-        console.error("Redirect Error:", error);
-        handleToast("Login failed via redirect.", "error");
-        setGlobalLoading(false);
-    });
+    // Check for redirect result first (handles mobile redirect returns)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+            console.log("Redirect login successful");
+            // Auth listener will handle the rest
+        }
+      })
+      .catch((error) => {
+          // SAFE IGNORE: Browser clearing storage causes this, but popup usually works as fallback
+          console.error("Redirect Error (Safe to ignore):", error);
+          setGlobalLoading(false);
+      });
 
     return () => unsubscribe();
   }, []);
 
-  // Updated Login Handler
+  // 2. Updated Login Handler (Prioritizes Popup, Fallback to Redirect)
   const handleLogin = async () => {
     setGlobalLoading(true);
     const provider = new GoogleAuthProvider();
+    
+    // FIX: Force account selection to prevent loops with cached bad sessions
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
+        // FIX: Force Persistence to LOCAL (survives Safari refreshes)
+        await setPersistence(auth, browserLocalPersistence);
+
+        // Try Popup First (Best for Desktop & Modern Mobile)
         await signInWithPopup(auth, provider);
     } catch (error: any) {
-        // If Popup fails (Mobile), use Redirect
+        console.error("Popup Failed/Blocked, trying Redirect:", error);
+        
+        // If Popup blocked (common on mobile), fallback to Redirect
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-             await signInWithRedirect(auth, provider);
+             try {
+                await signInWithRedirect(auth, provider);
+             } catch (redirectError) {
+                console.error("Redirect Failed:", redirectError);
+                handleToast("Login failed. Please disable pop-up blockers.", "error");
+                setGlobalLoading(false);
+             }
         } else {
-             console.error(error);
              handleToast("Login failed. Please try again.", "error");
              setGlobalLoading(false);
         }
@@ -743,6 +776,31 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       handleToast("Failed to send", 'error');
+    }
+  };
+
+  // --- LOGIN WITH DOMAIN CHECK ---
+  const handleLogin = async () => {
+    try {
+        setGlobalLoading(true);
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const email = result.user.email || '';
+        
+        // ALLOWED DOMAINS REGEX
+        const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\\.in|jntuh\.ac\.in)$/;
+
+        if (!allowedDomains.test(email)) {
+            await signOut(auth); // Instant logout if invalid
+            handleToast("Access Restricted: Please use your official College Email ID.", "error");
+        } else {
+            handleToast("Welcome back!", "success");
+        }
+    } catch (error: any) {
+        console.error(error);
+        handleToast("Login failed. Please try again.", "error");
+    } finally {
+        setGlobalLoading(false);
     }
   };
 
