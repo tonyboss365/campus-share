@@ -1,18 +1,48 @@
 'use client';
-import { useState } from 'react';
-import { Upload, X, CheckCircle, Image as ImageIcon, Tag, Sparkles } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Upload, X, CheckCircle, Image as ImageIcon, Tag, Sparkles, School, Book, PenTool } from 'lucide-react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '@/lib/firebase';
+
+// --- 1. STANDARD COLLEGES LIST ---
+const COLLEGES = [
+  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
+  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
+  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
+  "BITS Hyderabad", "Other"
+];
+
+// --- 2. SMART SUBJECT MAPPING ---
+const SUBJECT_MAP: { [key: string]: string } = {
+  // MATHS
+  "dm": "Discrete Mathematics", "mfcs": "Discrete Mathematics",
+  "mo": "Mathematical Optimization", "p&s": "Probability and Statistics",
+  "la": "Linear Algebra", "m1": "Mathematics I", "m2": "Mathematics II",
+  // CSE
+  "os": "Operating Systems", "cn": "Computer Networks",
+  "dbms": "Database Management Systems", "sql": "Database Management Systems",
+  "daa": "Design and Analysis of Algorithms", "dsa": "Data Structures",
+  "cd": "Compiler Design", "toc": "Theory of Computation",
+  "wt": "Web Technologies", "ai": "Artificial Intelligence",
+  "ml": "Machine Learning", "oops": "Object Oriented Programming",
+  "java": "Java Programming", "python": "Python Programming",
+  // ECE/EEE
+  "bee": "Basic Electrical Engineering", "edc": "Electronic Devices & Circuits",
+  "dld": "Digital Logic Design", "ss": "Signals and Systems"
+};
 
 export default function AddResource({ setToast, setActiveTab, setGlobalLoading }: any) {
   const [file, setFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   
+  // New state for custom college entry
+  const [customCollege, setCustomCollege] = useState('');
+
   const [formData, setFormData] = useState({ 
     title: '', subject: '', price: '', college: '', 
-    category: 'Notes', condition: 'Good' // Defaults
+    category: 'Notes', condition: 'Good' 
   });
 
   const categories = ['Notes', 'Textbook', 'Electronics', 'Supplies', 'Research'];
@@ -38,7 +68,7 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
     
     setGlobalLoading(true);
     try {
-      // 1. Upload Main File (Optional if selling physical item, but good to have spec sheet)
+      // 1. Upload Main File
       let fileUrl = '';
       if (file) {
         const storageRef = ref(storage, `resources/${Date.now()}_${file.name}`);
@@ -54,9 +84,26 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
         coverUrl = await getDownloadURL(coverRef);
       }
 
+      // --- DATA NORMALIZATION LOGIC ---
+      
+      // A. Normalize College Name
+      let finalCollege = formData.college;
+      if (formData.college === 'Other') {
+         finalCollege = customCollege.trim().replace(/\b\w/g, l => l.toUpperCase());
+      }
+
+      // B. Normalize Subject Name
+      const cleanSubInput = formData.subject.toLowerCase().replace(/\./g, '').trim();
+      let finalSubject = SUBJECT_MAP[cleanSubInput]; 
+      if (!finalSubject) {
+          finalSubject = formData.subject.trim().replace(/\b\w/g, l => l.toUpperCase());
+      }
+
       // 3. Save Data
       await addDoc(collection(db, "resources"), {
         ...formData,
+        subject: finalSubject, // Uses the cleaned name
+        college: finalCollege, // Uses the standardized name
         price: Number(formData.price) || 0,
         fileUrl,
         coverUrl,
@@ -67,17 +114,14 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
         approvedUsers: []
       });
 
-      // FIX: Use simple string to avoid the parent component's error interpretation logic
       setToast("Item Listed Successfully!", 'success');
       
-      // Delay tab switch slightly to ensure toast is visible and state is stable
       setTimeout(() => {
         setActiveTab('marketplace');
       }, 500);
 
     } catch (err: any) {
       console.error(err);
-      // Pass actual error message to avoid [object Object]
       setToast(err.message || "Upload Failed", 'error');
     } finally {
       setGlobalLoading(false);
@@ -99,7 +143,10 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
           <div className="grid grid-cols-3 gap-6">
              <div className="col-span-2 space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Item Title *</label>
-                <input className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-bold text-[#001E2B]" placeholder="e.g. B.S. Grewal Higher Engineering" onChange={e => setFormData({...formData, title: e.target.value})} />
+                <div className="relative">
+                    <PenTool size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                    <input className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-bold text-[#001E2B]" placeholder="e.g. B.S. Grewal Engineering" onChange={e => setFormData({...formData, title: e.target.value})} />
+                </div>
              </div>
              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Price (₹)</label>
@@ -123,15 +170,50 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
              </div>
           </div>
 
-          {/* SUBJECT & COLLEGE */}
+          {/* SUBJECT & COLLEGE (THE FIXES) */}
           <div className="grid grid-cols-2 gap-6">
+             {/* Subject Input with Auto-Hint */}
              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Subject / Dept</label>
-                <input className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium" placeholder="e.g. Mechanical" onChange={e => setFormData({...formData, subject: e.target.value})} />
+                <div className="relative">
+                    <Book size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                    <input 
+                        className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium" 
+                        placeholder="e.g. OS, DM, or Mech" 
+                        onChange={e => setFormData({...formData, subject: e.target.value})} 
+                    />
+                </div>
+                {/* Visual Hint for Auto-Correction */}
+                {SUBJECT_MAP[formData.subject.toLowerCase().replace(/\./g, '').trim()] && (
+                  <p className="text-[10px] text-[#00ED64] font-bold pl-2 animate-pulse">
+                      Will save as: {SUBJECT_MAP[formData.subject.toLowerCase().replace(/\./g, '').trim()]}
+                  </p>
+                )}
              </div>
+
+             {/* College Dropdown */}
              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">College (Optional)</label>
-                <input className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium" placeholder="e.g. JNTUH" onChange={e => setFormData({...formData, college: e.target.value})} />
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">College</label>
+                <div className="relative">
+                    <School size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                    <select 
+                        className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium appearance-none cursor-pointer" 
+                        onChange={e => setFormData({...formData, college: e.target.value})}
+                        value={formData.college}
+                    >
+                        <option value="">Select Campus...</option>
+                        {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                {/* Custom Input for 'Other' */}
+                {formData.college === 'Other' && (
+                    <input 
+                        className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium mt-2 animate-in fade-in" 
+                        placeholder="Type college name..." 
+                        value={customCollege}
+                        onChange={e => setCustomCollege(e.target.value)} 
+                    />
+                )}
              </div>
           </div>
 
