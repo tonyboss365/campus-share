@@ -35,20 +35,10 @@ const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
 // --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
 const MASTER_COLLEGES = [
-  "KL University",
-  "JNTUH",
-  "Osmania University",
-  "CBIT",
-  "VNR VJIET",
-  "Vasavi College",
-  "Gokaraju Rangaraju",
-  "Sreenidhi (SNIST)",
-  "Mahindra University",
-  "IIT Hyderabad",
-  "IIIT Hyderabad",
-  "BITS Hyderabad",
-  "NIT Warangal",
-  "BVRIT"
+  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
+  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
+  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
+  "BITS Hyderabad", "NIT Warangal", "BVRIT"
 ];
 
 // --- VISUAL COMPONENTS ---
@@ -372,7 +362,6 @@ export default function Home() {
   const isFirstLoad = useRef(true);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  // FIX: Start loading as true, but handle in auth listener
   const [globalLoading, setGlobalLoading] = useState(true); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -411,14 +400,15 @@ export default function Home() {
       setTimeout(() => setToast(null), 4000); 
   };
 
-  // --- AUTH LISTENER & DOMAIN CHECK ---
+  // --- MOBILE LOGIN FIX: DIRECT POPUP + AUTH LISTENER ---
+  
   useEffect(() => {
-    // Standard Auth Listener
+    // Standard Auth Listener (Runs on page load)
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
             
-            // ALLOW ALL .IN and .EDU MAILS
+            // ALLOW ALL .IN and .EDU MAILS (e.g. bvrit.ac.in, nitw.ac.in)
             const isAllowed = email.endsWith('.in') || email.endsWith('.edu');
 
             if (!isAllowed) {
@@ -756,30 +746,6 @@ export default function Home() {
     }
   };
 
-  // --- LOGIN WITH DOMAIN CHECK ---
-  const handleLogin = async () => {
-    try {
-        setGlobalLoading(true);
-        const provider = new GoogleAuthProvider();
-        
-        // This makes sure user must select account every time (helps with stuck sessions)
-        provider.setCustomParameters({ prompt: 'select_account' });
-        
-        // Use Popup - works best on mobile if triggered directly
-        await signInWithPopup(auth, provider);
-        
-    } catch (error: any) {
-        console.error(error);
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-            handleToast("Popup blocked. Please allow popups or tap again.", "error");
-        } else {
-            handleToast("Login failed. Please try again.", "error");
-        }
-    } finally {
-        setGlobalLoading(false);
-    }
-  };
-
   if (!user) return (
     <div className="min-h-screen w-screen bg-[#001E2B] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
       
@@ -975,7 +941,6 @@ export default function Home() {
              </div>
           </div>
         )}
-
         <div className="relative z-10">
             {/* LEVEL 1: Colleges */}
             {!viewingFile && !paymentResource && activeTab === 'marketplace' && !selectedCollege && (
@@ -989,7 +954,6 @@ export default function Home() {
                 ))}
             </div>
             )}
-
             {/* LEVEL 2: Subjects */}
             {!viewingFile && !paymentResource && activeTab === 'marketplace' && selectedCollege && !selectedSubject && (
             <div className="space-y-6">
@@ -1007,30 +971,15 @@ export default function Home() {
                 </div>
             </div>
             )}
-
             {/* LEVEL 3: Resources */}
-            {!viewingFile && !paymentResource && (
-            (activeTab === 'marketplace' && selectedCollege && selectedSubject) || 
-            activeTab === 'library'
-            ) && (
+            {!viewingFile && !paymentResource && ((activeTab === 'marketplace' && selectedCollege && selectedSubject) || activeTab === 'library') && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
                 {activeTab === 'marketplace' && <button onClick={() => setSelectedSubject(null)} className="col-span-full text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 hover:text-[#00ED64] flex items-center gap-2"><ArrowLeft size={16}/> Back to Subjects</button>}
                 {filteredResources.length > 0 ? filteredResources.map((item: any) => (
-                <ResourceCard 
-                    key={item.id} 
-                    item={item} 
-                    user={user} 
-                    onView={() => setViewingFile({id: item.id, url: item.fileUrl, title: item.title})} 
-                    onDownload={handleDownload}
-                    onAction={(type: 'buy' | 'request' | 'chat') => handleAction(item, type)} 
-                    onDelete={handleDeleteResource} 
-                />
-                )) : (
-                    <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40"><LayoutGrid size={64} className="mb-4"/><p className="font-bold text-lg">No resources found.</p></div>
-                )}
+                <ResourceCard key={item.id} item={item} user={user} onView={() => setViewingFile({id: item.id, url: item.fileUrl, title: item.title})} onDownload={handleDownload} onAction={(type: 'buy' | 'request' | 'chat') => handleAction(item, type)} onDelete={handleDeleteResource} />
+                )) : ( <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40"><LayoutGrid size={64} className="mb-4"/><p className="font-bold text-lg">No resources found.</p></div> )}
             </div>
             )}
-
             {/* CONSUMERS */}
             {!viewingFile && !paymentResource && activeTab === 'consumers' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
@@ -1049,49 +998,24 @@ export default function Home() {
                 )}
             </div>
             )}
-
             {/* REQUESTS & INBOX TAB */}
             {!viewingFile && !paymentResource && activeTab === 'requests' && (
               <div className="flex flex-col gap-10 pb-20">
-                
-                {/* SECTION 1: MESSAGES */}
                 <div>
-                  <h3 className="text-xl font-black text-[#001E2B] mb-6 flex items-center gap-2">
-                    <MessageCircle className="text-[#00ED64]" /> Messages & Inquiries
-                  </h3>
-                  {inboxChats.length === 0 ? (
-                    <div className="p-8 bg-slate-50 rounded-[32px] text-center border border-dashed border-slate-300">
-                       <p className="text-slate-400 font-bold text-sm">No messages yet.</p>
-                    </div>
-                  ) : (
+                  <h3 className="text-xl font-black text-[#001E2B] mb-6 flex items-center gap-2"><MessageCircle className="text-[#00ED64]" /> Messages & Inquiries</h3>
+                  {inboxChats.length === 0 ? ( <div className="p-8 bg-slate-50 rounded-[32px] text-center border border-dashed border-slate-300"><p className="text-slate-400 font-bold text-sm">No messages yet.</p></div> ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {inboxChats.map((chat) => {
                          const otherUser = chat.participantsData?.find((p:any) => p.uid !== user.uid);
                          const lastMsg = chat.messages?.[chat.messages.length - 1];
-                         
-                         // Check if this chat is unread
-                         const lastUpdate = chat.lastUpdated?.seconds || 0;
-                         const myRead = chat.lastRead?.[user.uid]?.seconds || 0;
-                         const isUnread = lastUpdate > myRead && lastMsg?.senderId !== user.uid;
-
+                         const isUnread = (chat.lastUpdated?.seconds || 0) > (chat.lastRead?.[user.uid]?.seconds || 0) && lastMsg?.senderId !== user.uid;
                          return (
                            <div key={chat.id} onClick={() => setActiveChat(chat)} className={`bg-white p-6 rounded-[24px] border ${isUnread ? 'border-[#00ED64] ring-2 ring-[#00ED64]/20' : 'border-slate-100'} hover:border-[#00ED64] shadow-sm hover:shadow-lg transition-all cursor-pointer flex items-center gap-4 group`}>
-                              
-                              {/* SMART AVATAR FOR INBOX */}
                               <UserAvatar user={{displayName: otherUser?.name || "User", photoURL: otherUser?.photo}} className="w-12 h-12 rounded-full border-2 border-white shadow-sm" />
-
                               <div className="flex-1 overflow-hidden">
-                                <div className="flex justify-between items-center mb-1">
-                                  <h4 className="font-bold text-[#001E2B] truncate">{otherUser?.name || "User"}</h4>
-                                  <span className="text-[10px] text-slate-400 font-medium">
-                                    {lastMsg?.timestamp ? new Date(lastMsg.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-                                  </span>
-                                </div>
+                                <div className="flex justify-between items-center mb-1"><h4 className="font-bold text-[#001E2B] truncate">{otherUser?.name || "User"}</h4><span className="text-[10px] text-slate-400 font-medium">{lastMsg?.timestamp ? new Date(lastMsg.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span></div>
                                 <p className="text-[10px] font-black text-[#00ED64] uppercase tracking-widest mb-1 truncate">{chat.resourceTitle}</p>
-                                <div className="flex justify-between items-center">
-                                    <p className={`text-xs truncate font-medium ${isUnread ? 'text-[#001E2B] font-bold' : 'text-slate-500'}`}>{lastMsg?.text || "Start conversation..."}</p>
-                                    {isUnread && <div className="w-2 h-2 bg-[#00ED64] rounded-full animate-pulse ml-2"></div>}
-                                </div>
+                                <div className="flex justify-between items-center"><p className={`text-xs truncate font-medium ${isUnread ? 'text-[#001E2B] font-bold' : 'text-slate-500'}`}>{lastMsg?.text || "Start conversation..."}</p>{isUnread && <div className="w-2 h-2 bg-[#00ED64] rounded-full animate-pulse ml-2"></div>}</div>
                               </div>
                            </div>
                          );
@@ -1099,12 +1023,8 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-
-                {/* SECTION 2: ACCESS REQUESTS */}
                 <div>
-                   <h3 className="text-xl font-black text-[#001E2B] mb-6 flex items-center gap-2">
-                      <ShieldCheck className="text-amber-500" /> Access Approvals
-                   </h3>
+                   <h3 className="text-xl font-black text-[#001E2B] mb-6 flex items-center gap-2"><ShieldCheck className="text-amber-500" /> Access Approvals</h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
                       {resources.filter(r => r.ownerId === user?.uid && r.requests?.length > 0).length === 0 ? (
                          <div className="col-span-full flex flex-col items-center justify-center py-10 opacity-40"><p className="font-bold text-sm">No pending access requests.</p></div>
@@ -1112,16 +1032,10 @@ export default function Home() {
                          resources.filter(r => r.ownerId === user?.uid && r.requests?.length > 0).map(res => 
                             res.requests.map((req: any, i: number) => (
                                <div key={i} className="bg-white border border-slate-100 p-6 rounded-[32px] shadow-sm hover:shadow-lg transition-all flex flex-col items-center text-center">
-                                  
-                                  {/* SMART AVATAR FOR REQUESTS */}
                                   <UserAvatar user={{displayName: req?.name, photoURL: req?.photo}} className="w-16 h-16 rounded-2xl border-2 border-[#00ED64]/20 mb-4 object-cover" />
-
                                   <p className="font-bold text-[#001E2B] text-lg mb-1">{req?.name || "Student"}</p>
                                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">Wants: {res.title}</p>
-                                  <div className="flex gap-2 w-full">
-                                     <button onClick={() => handleApprove(res.id, req)} className="flex-1 bg-[#00ED64] text-[#001E2B] py-2 rounded-xl font-bold text-xs hover:bg-[#00c050] transition-all">GRANT</button>
-                                     <button onClick={() => handleDecline(res.id, req)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"><X size={16}/></button>
-                                  </div>
+                                  <div className="flex gap-2 w-full"><button onClick={() => handleApprove(res.id, req)} className="flex-1 bg-[#00ED64] text-[#001E2B] py-2 rounded-xl font-bold text-xs hover:bg-[#00c050] transition-all">GRANT</button><button onClick={() => handleDecline(res.id, req)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"><X size={16}/></button></div>
                                </div>
                             ))
                          )
@@ -1130,45 +1044,24 @@ export default function Home() {
                 </div>
               </div>
             )}
-
             {!viewingFile && !paymentResource && activeTab === 'upload' && <AddResource setToast={handleToast} setActiveTab={setActiveTab} setGlobalLoading={setGlobalLoading} />}
         </div>
       </main>
-
-      {/* AI SIDEBAR */}
       <div className={`fixed top-0 right-0 h-full bg-white/80 backdrop-blur-3xl border-l border-white/50 shadow-[-30px_0_100px_rgba(0,30,43,0.15)] transition-all duration-500 z-[500] flex flex-col ${isChatOpen ? 'w-full md:w-[450px]' : 'w-0 overflow-hidden'}`}>
         <div className="p-6 border-b border-white/50 flex justify-between items-center bg-gradient-to-r from-[#001E2B] to-[#002b3d] text-white">
-           <div className="flex items-center gap-4">
-             <BrainCircuit className="text-[#00ED64]" size={28} />
-             <div><h3 className="font-bold text-lg leading-none">Cloud Mind</h3><p className="text-[10px] text-[#00ED64] font-bold uppercase tracking-widest mt-1">GPT-4o Mini</p></div>
-           </div>
+           <div className="flex items-center gap-4"><BrainCircuit className="text-[#00ED64]" size={28} /><div><h3 className="font-bold text-lg leading-none">Cloud Mind</h3><p className="text-[10px] text-[#00ED64] font-bold uppercase tracking-widest mt-1">GPT-4o Mini</p></div></div>
            <div className="flex gap-2">
              <button onClick={() => setIsHistoryOpen(!isHistoryOpen)} className="p-2 text-slate-400 hover:text-white bg-white/10 rounded-full transition-all" title="Chat History"><History size={18}/></button>
              <button onClick={startNewChat} className="p-2 text-slate-400 hover:text-white bg-white/10 rounded-full transition-all" title="New Chat"><MessageSquarePlus size={18}/></button>
              <button onClick={() => setIsChatOpen(false)} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"><X size={20}/></button>
            </div>
         </div>
-        
-        {isHistoryOpen && (
-          <div className="bg-[#f8fafc] border-b border-slate-200 p-4 max-h-60 overflow-y-auto">
-             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Previous Sessions</h4>
-             {savedSessions.length === 0 && <p className="text-slate-400 text-sm italic">No saved chats yet.</p>}
-             {savedSessions.map(session => (
-               <button key={session.id} onClick={() => loadSession(session)} className="w-full text-left p-3 mb-2 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-[#00ED64] hover:shadow-md transition-all flex items-center gap-3">
-                 <MessageSquare size={16} className="text-[#00ED64]"/>
-                 <span className="text-sm font-bold text-[#001E2B] truncate">{session.title}</span>
-               </button>
-             ))}
-          </div>
-        )}
-
+        {isHistoryOpen && ( <div className="bg-[#f8fafc] border-b border-slate-200 p-4 max-h-60 overflow-y-auto"><h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Previous Sessions</h4>{savedSessions.length === 0 && <p className="text-slate-400 text-sm italic">No saved chats yet.</p>}{savedSessions.map(session => (<button key={session.id} onClick={() => loadSession(session)} className="w-full text-left p-3 mb-2 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-[#00ED64] hover:shadow-md transition-all flex items-center gap-3"><MessageSquare size={16} className="text-[#00ED64]"/><span className="text-sm font-bold text-[#001E2B] truncate">{session.title}</span></button>))}</div> )}
         <div className="flex-1 overflow-y-auto cloud-scrollbar p-6 space-y-6 bg-[#F9FBFA]/50">
            {chatHistory.map((msg, i) => (
              <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 {msg.image && <img src={msg.image} alt="Upload" className="max-w-[200px] rounded-2xl mb-2 border-2 border-[#00ED64] shadow-md" />}
-                <div className={`max-w-[90%] p-6 rounded-[26px] text-sm shadow-sm leading-relaxed backdrop-blur-sm ${msg.role === 'user' ? 'bg-gradient-to-br from-[#00ED64] to-[#00c050] text-[#001E2B] font-semibold rounded-tr-none' : 'bg-white/80 text-[#001E2B] border border-white rounded-tl-none'}`}>
-                   {msg.role === 'assistant' ? <div className="prose prose-sm max-w-none prose-p:my-2 prose-strong:text-[#001E2B]"><ReactMarkdown>{msg.text}</ReactMarkdown></div> : msg.text}
-                </div>
+                <div className={`max-w-[90%] p-6 rounded-[26px] text-sm shadow-sm leading-relaxed backdrop-blur-sm ${msg.role === 'user' ? 'bg-gradient-to-br from-[#00ED64] to-[#00c050] text-[#001E2B] font-semibold rounded-tr-none' : 'bg-white/80 text-[#001E2B] border border-white rounded-tl-none'}`}>{msg.role === 'assistant' ? <div className="prose prose-sm max-w-none prose-p:my-2 prose-strong:text-[#001E2B]"><ReactMarkdown>{msg.text}</ReactMarkdown></div> : msg.text}</div>
              </div>
            ))}
            {isTyping && <div className="p-4"><CloudDashLoader text="Thinking..." /></div>}
@@ -1183,23 +1076,12 @@ export default function Home() {
            </div>
         </div>
       </div>
-      
       {!isChatOpen && !viewingFile && !paymentResource && (
         <button onClick={() => setIsChatOpen(true)} className="fixed bottom-10 right-10 z-[600] w-14 h-14 md:w-20 md:h-20 bg-[#001E2B] text-[#00ED64] rounded-[24px] md:rounded-[32px] flex items-center justify-center shadow-[0_20px_60px_rgba(0,30,43,0.4)] hover:scale-110 hover:-translate-y-2 transition-all border-4 border-[#00ED64]/20 group">
           <BrainCircuit size={28} className="md:w-8 md:h-8 group-hover:animate-pulse" />
         </button>
       )}
-
-      {/* REAL-TIME CHAT OVERLAY */}
-      {activeChat && user && (
-         <ChatWindow 
-            chat={activeChat} 
-            user={user} 
-            onClose={() => setActiveChat(null)} 
-            onSend={handleSendMessage}
-            onRead={handleMarkAsRead}
-         />
-      )}
+      {activeChat && user && (<ChatWindow chat={activeChat} user={user} onClose={() => setActiveChat(null)} onSend={handleSendMessage} onRead={handleMarkAsRead} />)}
     </div>
   );
 }
