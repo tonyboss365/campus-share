@@ -360,7 +360,6 @@ export default function Home() {
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [globalLoading, setGlobalLoading] = useState(false); 
-  // FIX: DEFAULT SIDEBAR OPEN STATE
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -543,7 +542,7 @@ export default function Home() {
         }
     });
     
-    // 3. Convert to array and sort
+    // 3. Sort alphabetically
     return Array.from(allColleges).sort();
   }, [resources]);
 
