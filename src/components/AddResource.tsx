@@ -1,11 +1,11 @@
 'use client';
 import { useState, useRef } from 'react';
-import { Upload, X, CheckCircle, Image as ImageIcon, Tag, Sparkles, School, Book, PenTool } from 'lucide-react';
+import { db, storage, auth } from '@/lib/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage, auth } from '@/lib/firebase';
+import { Upload, X, CheckCircle, Image as ImageIcon, Tag, Sparkles, School, Book, PenTool, Layers } from 'lucide-react';
 
-// --- 1. STANDARD COLLEGES LIST ---
+// --- STANDARD COLLEGES LIST ---
 const COLLEGES = [
   "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
   "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
@@ -13,7 +13,10 @@ const COLLEGES = [
   "BITS Hyderabad", "Other"
 ];
 
-// --- 2. SMART SUBJECT MAPPING ---
+// --- TITLES TO BLOCK (Forces user to be specific) ---
+const BLOCKED_TITLES = ['cse', 'ece', 'eee', 'aids', 'mech', 'civil', 'it', 'aiml'];
+
+// --- SMART SUBJECT MAPPING ---
 const SUBJECT_MAP: { [key: string]: string } = {
   // MATHS
   "dm": "Discrete Mathematics", "mfcs": "Discrete Mathematics",
@@ -37,8 +40,9 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   
-  // New state for custom college entry
+  // New state fields
   const [customCollege, setCustomCollege] = useState('');
+  const [group, setGroup] = useState(''); // Stores CSE, ECE, etc.
 
   const [formData, setFormData] = useState({ 
     title: '', subject: '', price: '', college: '', 
@@ -61,14 +65,21 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
   };
 
   const handleUpload = async () => {
-    if (!formData.title || !formData.subject) {
-      setToast("Title and Subject are required.", 'error');
+    // 1. VALIDATION
+    if (!formData.title || !formData.subject || !group) {
+      setToast("Title, Subject, and Group are required.", 'error');
       return;
+    }
+
+    // Check for blocked titles
+    if (BLOCKED_TITLES.includes(formData.title.toLowerCase().trim())) {
+        setToast("Please use a specific title (e.g. 'Data Structures'), not just the Branch name.", 'error');
+        return;
     }
     
     setGlobalLoading(true);
     try {
-      // 1. Upload Main File
+      // 2. Upload Main File
       let fileUrl = '';
       if (file) {
         const storageRef = ref(storage, `resources/${Date.now()}_${file.name}`);
@@ -76,7 +87,7 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
         fileUrl = await getDownloadURL(storageRef);
       }
 
-      // 2. Upload Cover Image
+      // 3. Upload Cover Image
       let coverUrl = '';
       if (coverFile) {
         const coverRef = ref(storage, `covers/${Date.now()}_${coverFile.name}`);
@@ -84,26 +95,27 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
         coverUrl = await getDownloadURL(coverRef);
       }
 
-      // --- DATA NORMALIZATION LOGIC ---
+      // --- DATA NORMALIZATION ---
       
-      // A. Normalize College Name
+      // A. College
       let finalCollege = formData.college;
       if (formData.college === 'Other') {
          finalCollege = customCollege.trim().replace(/\b\w/g, l => l.toUpperCase());
       }
 
-      // B. Normalize Subject Name
+      // B. Subject
       const cleanSubInput = formData.subject.toLowerCase().replace(/\./g, '').trim();
       let finalSubject = SUBJECT_MAP[cleanSubInput]; 
       if (!finalSubject) {
           finalSubject = formData.subject.trim().replace(/\b\w/g, l => l.toUpperCase());
       }
 
-      // 3. Save Data
+      // 4. Save Data
       await addDoc(collection(db, "resources"), {
         ...formData,
-        subject: finalSubject, // Uses the cleaned name
-        college: finalCollege, // Uses the standardized name
+        subject: finalSubject,
+        college: finalCollege,
+        group: group, // Saving the branch/group
         price: Number(formData.price) || 0,
         fileUrl,
         coverUrl,
@@ -170,9 +182,30 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
              </div>
           </div>
 
-          {/* SUBJECT & COLLEGE (THE FIXES) */}
+          {/* GROUP & SUBJECT */}
           <div className="grid grid-cols-2 gap-6">
-             {/* Subject Input with Auto-Hint */}
+             {/* NEW GROUP DROPDOWN */}
+             <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Group / Branch *</label>
+                <div className="relative">
+                   <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                   <select 
+                      className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium appearance-none cursor-pointer" 
+                      onChange={e => setGroup(e.target.value)}
+                      value={group}
+                   >
+                      <option value="">Select Group...</option>
+                      <option value="CSE">CSE (Computer Science)</option>
+                      <option value="ECE">ECE (Electronics)</option>
+                      <option value="EEE">EEE (Electrical)</option>
+                      <option value="AIDS">AI & DS</option>
+                      <option value="MECH">Mechanical</option>
+                      <option value="CIVIL">Civil</option>
+                      <option value="OTHER">Other / Basic Sciences</option>
+                   </select>
+                </div>
+             </div>
+
              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Subject / Dept</label>
                 <div className="relative">
@@ -183,41 +216,40 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
                         onChange={e => setFormData({...formData, subject: e.target.value})} 
                     />
                 </div>
-                {/* Visual Hint for Auto-Correction */}
+                {/* Visual Hint */}
                 {SUBJECT_MAP[formData.subject.toLowerCase().replace(/\./g, '').trim()] && (
                   <p className="text-[10px] text-[#00ED64] font-bold pl-2 animate-pulse">
                       Will save as: {SUBJECT_MAP[formData.subject.toLowerCase().replace(/\./g, '').trim()]}
                   </p>
                 )}
              </div>
-
-             {/* College Dropdown */}
-             <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">College</label>
-                <div className="relative">
-                    <School size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
-                    <select 
-                        className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium appearance-none cursor-pointer" 
-                        onChange={e => setFormData({...formData, college: e.target.value})}
-                        value={formData.college}
-                    >
-                        <option value="">Select Campus...</option>
-                        {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                </div>
-                {/* Custom Input for 'Other' */}
-                {formData.college === 'Other' && (
-                    <input 
-                        className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium mt-2 animate-in fade-in" 
-                        placeholder="Type college name..." 
-                        value={customCollege}
-                        onChange={e => setCustomCollege(e.target.value)} 
-                    />
-                )}
-             </div>
           </div>
 
-          {/* COVER IMAGE UPLOAD (REQUIRED FOR VISUALS) */}
+          {/* COLLEGE DROPDOWN */}
+          <div className="space-y-2">
+             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">College</label>
+             <div className="relative">
+                <School size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                <select 
+                    className="w-full bg-slate-50 p-4 pl-12 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium appearance-none cursor-pointer" 
+                    onChange={e => setFormData({...formData, college: e.target.value})}
+                    value={formData.college}
+                >
+                    <option value="">Select Campus...</option>
+                    {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+             </div>
+             {formData.college === 'Other' && (
+                <input 
+                    className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-[#00ED64] font-medium mt-2 animate-in fade-in" 
+                    placeholder="Type college name..." 
+                    value={customCollege}
+                    onChange={e => setCustomCollege(e.target.value)} 
+                />
+             )}
+          </div>
+
+          {/* COVER IMAGE UPLOAD */}
           <div className="space-y-2">
              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Cover Image (Photo of Item)</label>
              <label className={`border-2 border-dashed rounded-3xl p-6 flex items-center justify-center cursor-pointer transition-all group gap-6 ${coverFile ? 'border-[#00ED64] bg-[#F0FDF4]' : 'border-slate-200 hover:border-[#00ED64] hover:bg-slate-50'}`}>
@@ -234,7 +266,7 @@ export default function AddResource({ setToast, setActiveTab, setGlobalLoading }
              </label>
           </div>
 
-          {/* DOCUMENT FILE UPLOAD (OPTIONAL) */}
+          {/* DOCUMENT FILE UPLOAD */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Attach File (Optional for Physical Items)</label>
             <label className={`border-2 border-dashed rounded-3xl p-4 flex items-center gap-4 cursor-pointer transition-all group ${file ? 'border-[#00ED64] bg-[#F0FDF4]' : 'border-slate-200 hover:border-[#00ED64] hover:bg-slate-50'}`}>
