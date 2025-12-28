@@ -9,17 +9,8 @@ import {
   updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp,
   setDoc, getDoc, where 
 } from 'firebase/firestore';
-// FIX: Added specific auth imports for mobile compatibility
-import { 
-  onAuthStateChanged, 
-  User, 
-  signOut, 
-  signInWithPopup, 
-  getRedirectResult, 
-  GoogleAuthProvider,
-  setPersistence,
-  browserLocalPersistence
-} from 'firebase/auth';
+// FIX: Imports for robust mobile auth
+import { onAuthStateChanged, User, signOut, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { 
   BrainCircuit, Send, X, ShieldCheck, 
   LogOut, LayoutGrid, Users, Cloud, 
@@ -369,7 +360,7 @@ export default function Home() {
   const isFirstLoad = useRef(true);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
-  const [globalLoading, setGlobalLoading] = useState(true); 
+  const [globalLoading, setGlobalLoading] = useState(true); // START WITH LOADING TRUE
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -407,13 +398,9 @@ export default function Home() {
       setTimeout(() => setToast(null), 4000); 
   };
 
-  // --- MOBILE LOGIN FIX: POPUP ONLY (Avoids Safari Redirect Loop) ---
+  // --- MOBILE LOGIN FIX: USE REDIRECT + UNIFIED AUTH LISTENER ---
   
   useEffect(() => {
-    // Check for any stray redirects just in case, but rely on listener
-    getRedirectResult(auth).catch(() => {});
-
-    // Standard Auth Listener
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
@@ -437,34 +424,34 @@ export default function Home() {
             setResources([]);
             setInboxChats([]);
         }
+        setGlobalLoading(false); // Stop loading regardless of result
+    });
+
+    // Handle Redirect Result (Mobile)
+    getRedirectResult(auth).catch((error) => {
+        console.error("Redirect Error:", error);
+        handleToast("Login failed via redirect.", "error");
         setGlobalLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // UPDATED Login Handler: Forces Popup + Local Persistence
+  // Updated Login Handler
   const handleLogin = async () => {
     setGlobalLoading(true);
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-        // 1. Force Local Persistence (Crucial for Safari)
-        await setPersistence(auth, browserLocalPersistence);
-
-        // 2. Use Popup (Works on mobile if triggered by click)
         await signInWithPopup(auth, provider);
     } catch (error: any) {
-        console.error("Login Error:", error);
-        
-        // Handle specific "Popup Blocked" scenario
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-             handleToast("Pop-up blocked. Please allow pop-ups for this site.", "error");
+        // If Popup fails (Mobile), use Redirect
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+             await signInWithRedirect(auth, provider);
         } else {
+             console.error(error);
              handleToast("Login failed. Please try again.", "error");
+             setGlobalLoading(false);
         }
-        setGlobalLoading(false);
     }
   };
 
@@ -596,7 +583,7 @@ export default function Home() {
         }
     });
     
-    // 3. Convert to array and sort
+    // 3. Sort alphabetically
     return Array.from(allColleges).sort();
   }, [resources]);
 
@@ -756,31 +743,6 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       handleToast("Failed to send", 'error');
-    }
-  };
-
-  // --- LOGIN WITH DOMAIN CHECK ---
-  const handleLogin = async () => {
-    try {
-        setGlobalLoading(true);
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const email = result.user.email || '';
-        
-        // ALLOWED DOMAINS REGEX
-        const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\\.in|jntuh\.ac\.in)$/;
-
-        if (!allowedDomains.test(email)) {
-            await signOut(auth); // Instant logout if invalid
-            handleToast("Access Restricted: Please use your official College Email ID.", "error");
-        } else {
-            handleToast("Welcome back!", "success");
-        }
-    } catch (error: any) {
-        console.error(error);
-        handleToast("Login failed. Please try again.", "error");
-    } finally {
-        setGlobalLoading(false);
     }
   };
 
