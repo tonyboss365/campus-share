@@ -9,7 +9,7 @@ import {
   updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp,
   setDoc, getDoc, where 
 } from 'firebase/firestore';
-// FIX: Added setPersistence and browserLocalPersistence
+// FIX: Added specific auth imports for mobile compatibility
 import { 
   onAuthStateChanged, 
   User, 
@@ -17,9 +17,9 @@ import {
   signInWithPopup, 
   signInWithRedirect, 
   getRedirectResult, 
-  GoogleAuthProvider, 
-  setPersistence, 
-  browserLocalPersistence 
+  GoogleAuthProvider,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { 
   BrainCircuit, Send, X, ShieldCheck, 
@@ -52,6 +52,7 @@ const MASTER_COLLEGES = [
 ];
 
 // --- VISUAL COMPONENTS ---
+
 const NeonCloud = ({ className, size = 180 }: { className?: string, size?: number }) => (
   <div className={`relative ${className}`}>
     <svg width={size} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-slate-200/30">
@@ -407,23 +408,36 @@ export default function Home() {
       setTimeout(() => setToast(null), 4000); 
   };
 
-  // --- MOBILE LOGIN FIX: USE REDIRECT + UNIFIED AUTH LISTENER ---
-  
-  // 1. Listen for Auth State Changes & Redirect Results
+  // --- MOBILE LOGIN FIX: REDIRECT RECOVERY + AUTH LISTENER ---
   useEffect(() => {
-    // Standard Auth Listener
+    // 1. Check for Redirect Result First (for Mobile/Safari)
+    getRedirectResult(auth).then((result) => {
+        if (result) {
+            console.log("Redirect login successful");
+            // Auth listener will handle the state update, we just ensure no loading
+        }
+    }).catch((error: any) => {
+        console.error("Redirect Error:", error);
+        // Only show error if it's NOT the "missing initial state" harmless one
+        if (error.code !== 'auth/web-storage-unsupported') {
+            // handleToast("Login failed. Please try again.", "error");
+        }
+        setGlobalLoading(false);
+    });
+
+    // 2. Auth State Listener
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
+            // Corrected regex
             const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\.in|jntuh\.ac\.in)$/;
 
             if (!allowedDomains.test(email)) {
                 await signOut(auth);
-                handleToast("Access Restricted: Official College Email Required.", "error");
+                handleToast("Access Restricted: College Email Required.", "error");
                 setUser(null);
             } else {
                 setUser(currentUser);
-                // Load Resources only when user is valid
                 const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
                 onSnapshot(q, {
                     next: (snap) => setResources(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -435,39 +449,22 @@ export default function Home() {
             setResources([]);
             setInboxChats([]);
         }
-        setGlobalLoading(false); 
+        setGlobalLoading(false);
     });
-
-    // Check for redirect result first (handles mobile redirect returns)
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-            console.log("Redirect login successful");
-            // Auth listener will handle the rest
-        }
-      })
-      .catch((error) => {
-          // SAFE IGNORE: Browser clearing storage causes this, but popup usually works as fallback
-          console.error("Redirect Error (Safe to ignore):", error);
-          setGlobalLoading(false);
-      });
 
     return () => unsubscribe();
   }, []);
 
-  // 2. Updated Login Handler (Prioritizes Popup, Fallback to Redirect)
+  // Updated Login Handler (Popup First, Redirect Fallback)
   const handleLogin = async () => {
     setGlobalLoading(true);
     const provider = new GoogleAuthProvider();
-    
-    // FIX: Force account selection to prevent loops with cached bad sessions
+    // Forces account selection to avoid cached bad sessions
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-        // FIX: Force Persistence to LOCAL (survives Safari refreshes)
-        await setPersistence(auth, browserLocalPersistence);
-
         // Try Popup First (Best for Desktop & Modern Mobile)
+        await setPersistence(auth, browserLocalPersistence); // Try to force local storage
         await signInWithPopup(auth, provider);
     } catch (error: any) {
         console.error("Popup Failed/Blocked, trying Redirect:", error);
@@ -776,31 +773,6 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       handleToast("Failed to send", 'error');
-    }
-  };
-
-  // --- LOGIN WITH DOMAIN CHECK ---
-  const handleLogin = async () => {
-    try {
-        setGlobalLoading(true);
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const email = result.user.email || '';
-        
-        // ALLOWED DOMAINS REGEX
-        const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\\.in|jntuh\.ac\.in)$/;
-
-        if (!allowedDomains.test(email)) {
-            await signOut(auth); // Instant logout if invalid
-            handleToast("Access Restricted: Please use your official College Email ID.", "error");
-        } else {
-            handleToast("Welcome back!", "success");
-        }
-    } catch (error: any) {
-        console.error(error);
-        handleToast("Login failed. Please try again.", "error");
-    } finally {
-        setGlobalLoading(false);
     }
   };
 
