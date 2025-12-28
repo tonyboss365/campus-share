@@ -24,7 +24,23 @@ import ReactMarkdown from 'react-markdown';
 // FIX: Use Environment Variable for Vercel Deployment
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-// --- VISUAL COMPONENTS (KEPT EXACTLY AS IS) ---
+// --- 1. DEFINE MASTER COLLEGES LIST HERE ---
+const MASTER_COLLEGES = [
+  "KL University",
+  "JNTUH",
+  "Osmania University",
+  "CBIT",
+  "VNR VJIET",
+  "Vasavi College",
+  "Gokaraju Rangaraju",
+  "Sreenidhi (SNIST)",
+  "Mahindra University",
+  "IIT Hyderabad",
+  "IIIT Hyderabad",
+  "BITS Hyderabad"
+];
+
+// --- VISUAL COMPONENTS ---
 
 const NeonCloud = ({ className, size = 180 }: { className?: string, size?: number }) => (
   <div className={`relative ${className}`}>
@@ -262,8 +278,7 @@ const ChatWindow = ({ chat: initialChat, user, onClose, onSend, onRead }: any) =
   );
 };
 
-// --- DATA NORMALIZER HELPER (THE NEW LOGIC) ---
-// This function fixes the "fragmentation" issue by grouping similar names together
+// --- DATA NORMALIZER HELPER ---
 const normalizeName = (name: string, type: 'college' | 'subject') => {
     if (!name) return '';
     const lower = name.trim().toLowerCase().replace(/\./g, '');
@@ -282,12 +297,10 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
         if (lower.includes('iiit') && lower.includes('hyd')) return "IIIT Hyderabad";
         if (lower.includes('bits') && lower.includes('hyd')) return "BITS Hyderabad";
         
-        // Default: Capitalize First Letter of Each Word
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
     
     if (type === 'subject') {
-        // Mappings for Subject Abbreviations
         const mappings: { [key: string]: string } = {
             "dm": "Discrete Mathematics",
             "mfcs": "Discrete Mathematics",
@@ -332,10 +345,7 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
             "es": "Environmental Science"
         };
 
-        // Check for exact match in mapping
         if (mappings[lower]) return mappings[lower];
-        
-        // Check for partial matches/common variations
         if (lower.includes('discrete')) return "Discrete Mathematics";
         if (lower.includes('operating')) return "Operating Systems";
         if (lower.includes('optimisation') || lower.includes('optimization')) return "Mathematical Optimization";
@@ -343,7 +353,6 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
         if (lower.includes('algo')) return "Design and Analysis of Algorithms";
         if (lower.includes('network')) return "Computer Networks";
         
-        // Default: Capitalize First Letter of Each Word
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
     return name;
@@ -540,36 +549,34 @@ export default function Home() {
     } catch { handleToast("Delete failed.", 'error'); } finally { setGlobalLoading(false); } 
   };
 
-  // --- UPDATED LOGIC TO FIX FRAGMENTATION (KLH/KLh & DM/Discrete Maths) ---
-  
+  // --- UPDATED LOGIC: MASTER LIST + DB LIST ---
+  // This ensures all colleges show even with 0 assets
   const colleges = useMemo(() => {
-    // We create a Set of normalized names to remove duplicates
-    const uniqueNormalized = new Set();
+    // 1. Start with Master List
+    const allColleges = new Set(MASTER_COLLEGES);
+    
+    // 2. Add found colleges from DB
     resources.forEach(r => {
         if(r.college) {
-            uniqueNormalized.add(normalizeName(r.college, 'college'));
+            allColleges.add(normalizeName(r.college, 'college'));
         }
     });
-    // Convert back to array and sort
-    return Array.from(uniqueNormalized).sort();
+    
+    // 3. Convert to array and sort
+    return Array.from(allColleges).sort();
   }, [resources]);
 
   const subjects = useMemo(() => {
     if (!selectedCollege) return [];
-    
-    // 1. Filter resources that MATCH the normalized college name
     const relevantResources = resources.filter(r => 
         normalizeName(r.college || '', 'college') === selectedCollege
     );
-    
-    // 2. Extract and Normalize subjects
     const uniqueSubs = new Set();
     relevantResources.forEach(r => {
         if(r.subject) {
             uniqueSubs.add(normalizeName(r.subject, 'subject'));
         }
     });
-    
     return Array.from(uniqueSubs).sort();
   }, [resources, selectedCollege]);
 
@@ -579,11 +586,9 @@ export default function Home() {
     if (activeTab === 'library') {
         res = res.filter(r => r.ownerId === user?.uid || r.approvedUsers?.some((a: any) => a.uid === user?.uid));
     } else if (activeTab === 'marketplace') {
-       // Filter by Normalized College
        if (selectedCollege) {
            res = res.filter(r => normalizeName(r.college || '', 'college') === selectedCollege);
        }
-       // Filter by Normalized Subject
        if (selectedSubject && selectedSubject !== 'All') {
            res = res.filter(r => normalizeName(r.subject || '', 'subject') === selectedSubject);
        }
