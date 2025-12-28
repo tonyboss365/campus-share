@@ -24,19 +24,11 @@ import ReactMarkdown from 'react-markdown';
 // FIX: Use Environment Variable for Vercel Deployment
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-// --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
+// --- 1. MASTER LIST OF COLLEGES (Ensures these always show up) ---
 const MASTER_COLLEGES = [
-  "KL University",
-  "JNTUH",
-  "Osmania University",
-  "CBIT",
-  "VNR VJIET",
-  "Vasavi College",
-  "Gokaraju Rangaraju",
-  "Sreenidhi (SNIST)",
-  "Mahindra University",
-  "IIT Hyderabad",
-  "IIIT Hyderabad",
+  "KL University", "JNTUH", "Osmania University", "CBIT", "VNR VJIET",
+  "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)",
+  "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad",
   "BITS Hyderabad"
 ];
 
@@ -278,8 +270,8 @@ const ChatWindow = ({ chat: initialChat, user, onClose, onSend, onRead }: any) =
   );
 };
 
-// --- DATA NORMALIZER HELPER (UPDATED SMART LOGIC) ---
-const normalizeName = (name: string, type: 'college' | 'subject') => {
+// --- DATA NORMALIZER HELPER (UPDATED FOR GROUP SORTING) ---
+const normalizeName = (name: string, type: 'college' | 'subject', itemGroup?: string) => {
     if (!name) return '';
     const lower = name.trim().toLowerCase().replace(/\./g, '');
     
@@ -301,72 +293,37 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
     
-    // 2. SUBJECT NORMALIZATION (SMART KEYWORD DETECTION)
+    // 2. SUBJECT NORMALIZATION
     if (type === 'subject') {
-        // A. Branch/Department Grouping based on keywords
-        if (lower.includes('cse') || lower.includes('computer science')) return "Computer Science (CSE)";
-        if (lower.includes('ece') || lower.includes('electronic') || lower.includes('circuit')) return "Electronics (ECE)";
-        if (lower.includes('eee') || lower.includes('electrical')) return "Electrical (EEE)";
-        if (lower.includes('mech') || lower.includes('mechanical')) return "Mechanical Engineering";
-        if (lower.includes('civil')) return "Civil Engineering";
+        // A. If an explicit GROUP exists (e.g. CSE, ECE), prefix it for better sorting
+        if (itemGroup && itemGroup !== 'OTHER') {
+            return `${itemGroup} - ${name.trim().replace(/\b\w/g, l => l.toUpperCase())}`;
+        }
 
-        // B. Common Subjects Mappings
+        // B. Fallback Smart Keyword Detection
+        if (lower.includes('cse') || lower.includes('computer science')) return "Computer Science (CSE)";
+        if (lower.includes('ece') || lower.includes('electronic')) return "Electronics (ECE)";
+        if (lower.includes('eee') || lower.includes('electrical')) return "Electrical (EEE)";
+        if (lower.includes('mech') || lower.includes('mechanical')) return "Mechanical";
+        if (lower.includes('civil')) return "Civil";
+
+        // C. Common Subject Mappings
         const mappings: { [key: string]: string } = {
             "dm": "Discrete Mathematics",
             "mfcs": "Discrete Mathematics",
             "mo": "Mathematical Optimization",
             "p&s": "Probability and Statistics",
             "ps": "Probability and Statistics",
-            "la": "Linear Algebra",
-            "m1": "Mathematics I",
-            "m2": "Mathematics II",
-            "maths": "Mathematics",
-            "mathematics": "Mathematics",
             "os": "Operating Systems",
             "cn": "Computer Networks",
             "dbms": "Database Management Systems",
-            "sql": "Database Management Systems",
             "daa": "Design and Analysis of Algorithms",
-            "dsa": "Data Structures and Algorithms",
-            "ds": "Data Structures",
-            "cd": "Compiler Design",
-            "flat": "Formal Languages and Automata Theory",
-            "toc": "Theory of Computation",
-            "se": "Software Engineering",
-            "wt": "Web Technologies",
-            "mwd": "Modern Web Development",
-            "stm": "Software Testing Methodologies",
-            "oops": "Object Oriented Programming",
-            "java": "Java Programming",
-            "python": "Python Programming",
-            "cpp": "C++ Programming",
-            "cp": "C Programming",
-            "coa": "Computer Organization and Architecture",
+            "dsa": "Data Structures",
             "ai": "Artificial Intelligence",
-            "ml": "Machine Learning",
-            "dl": "Deep Learning",
-            "nlp": "Natural Language Processing",
-            "dv": "Data Visualization",
-            "bee": "Basic Electrical Engineering",
-            "edc": "Electronic Devices and Circuits",
-            "dld": "Digital Logic Design",
-            "stld": "Switching Theory and Logic Design",
-            "ss": "Signals and Systems",
-            "cs": "Control Systems",
-            "eg": "Engineering Graphics",
-            "es": "Environmental Science"
+            "ml": "Machine Learning"
         };
 
         if (mappings[lower]) return mappings[lower];
-        
-        // C. Partial Matches for Subjects
-        if (lower.includes('math')) return "Mathematics";
-        if (lower.includes('discrete')) return "Discrete Mathematics";
-        if (lower.includes('operating')) return "Operating Systems";
-        if (lower.includes('optimisation') || lower.includes('optimization')) return "Mathematical Optimization";
-        if (lower.includes('structure')) return "Data Structures";
-        if (lower.includes('algo')) return "Design and Analysis of Algorithms";
-        if (lower.includes('network')) return "Computer Networks";
         
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -565,34 +522,39 @@ export default function Home() {
   };
 
   // --- REPLACED COLLEGE LOGIC: MASTER LIST + DB LIST ---
+  // This ensures all colleges show even with 0 assets
   const colleges = useMemo(() => {
-    // 1. Start with MASTER list to ensure they always show even if empty
+    // 1. Start with Master List
     const allColleges = new Set(MASTER_COLLEGES);
     
-    // 2. Add any others found in the database (custom ones)
+    // 2. Add found colleges from DB
     resources.forEach(r => {
         if(r.college) {
             allColleges.add(normalizeName(r.college, 'college'));
         }
     });
     
-    // 3. Sort alphabetically
+    // 3. Convert to array and sort
     return Array.from(allColleges).sort();
   }, [resources]);
 
   const subjects = useMemo(() => {
     if (!selectedCollege) return [];
-    // Filter resources matching the normalized college name
+    
+    // 1. Filter resources matching the normalized college name
     const relevantResources = resources.filter(r => 
         normalizeName(r.college || '', 'college') === selectedCollege
     );
-    // Normalize subjects
+    
+    // 2. Extract and Normalize subjects (USING GROUP IF AVAILABLE)
     const uniqueSubs = new Set();
     relevantResources.forEach(r => {
         if(r.subject) {
-            uniqueSubs.add(normalizeName(r.subject, 'subject'));
+            // Pass r.group to the normalizer for better sorting (e.g. "CSE - Data Structures")
+            uniqueSubs.add(normalizeName(r.subject, 'subject', r.group));
         }
     });
+    
     return Array.from(uniqueSubs).sort();
   }, [resources, selectedCollege]);
 
@@ -608,7 +570,8 @@ export default function Home() {
        }
        // Filter by Normalized Subject
        if (selectedSubject && selectedSubject !== 'All') {
-           res = res.filter(r => normalizeName(r.subject || '', 'subject') === selectedSubject);
+           // We compare against the normalized version that includes group info
+           res = res.filter(r => normalizeName(r.subject || '', 'subject', r.group) === selectedSubject);
        }
     }
     
