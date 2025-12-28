@@ -24,7 +24,7 @@ import ReactMarkdown from 'react-markdown';
 // FIX: Use Environment Variable for Vercel Deployment
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-// --- VISUAL COMPONENTS ---
+// --- VISUAL COMPONENTS (KEPT EXACTLY AS IS) ---
 
 const NeonCloud = ({ className, size = 180 }: { className?: string, size?: number }) => (
   <div className={`relative ${className}`}>
@@ -262,6 +262,93 @@ const ChatWindow = ({ chat: initialChat, user, onClose, onSend, onRead }: any) =
   );
 };
 
+// --- DATA NORMALIZER HELPER (THE NEW LOGIC) ---
+// This function fixes the "fragmentation" issue by grouping similar names together
+const normalizeName = (name: string, type: 'college' | 'subject') => {
+    if (!name) return '';
+    const lower = name.trim().toLowerCase().replace(/\./g, '');
+    
+    if (type === 'college') {
+        if (lower.includes('kl') || lower.includes('koneru')) return "KL University";
+        if (lower.includes('cbit')) return "CBIT";
+        if (lower.includes('vnr')) return "VNR VJIET";
+        if (lower.includes('osmania') || lower.includes('ou')) return "Osmania University";
+        if (lower.includes('jntu')) return "JNTUH";
+        if (lower.includes('vasavi')) return "Vasavi College";
+        if (lower.includes('gokaraju')) return "Gokaraju Rangaraju";
+        if (lower.includes('sreenidhi') || lower.includes('snist')) return "Sreenidhi (SNIST)";
+        if (lower.includes('mahindra')) return "Mahindra University";
+        if (lower.includes('iit') && lower.includes('hyd')) return "IIT Hyderabad";
+        if (lower.includes('iiit') && lower.includes('hyd')) return "IIIT Hyderabad";
+        if (lower.includes('bits') && lower.includes('hyd')) return "BITS Hyderabad";
+        
+        // Default: Capitalize First Letter of Each Word
+        return name.trim().replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    if (type === 'subject') {
+        // Mappings for Subject Abbreviations
+        const mappings: { [key: string]: string } = {
+            "dm": "Discrete Mathematics",
+            "mfcs": "Discrete Mathematics",
+            "mo": "Mathematical Optimization",
+            "p&s": "Probability and Statistics",
+            "ps": "Probability and Statistics",
+            "la": "Linear Algebra",
+            "m1": "Mathematics I",
+            "m2": "Mathematics II",
+            "os": "Operating Systems",
+            "cn": "Computer Networks",
+            "dbms": "Database Management Systems",
+            "sql": "Database Management Systems",
+            "daa": "Design and Analysis of Algorithms",
+            "dsa": "Data Structures and Algorithms",
+            "ds": "Data Structures",
+            "cd": "Compiler Design",
+            "flat": "Formal Languages and Automata Theory",
+            "toc": "Theory of Computation",
+            "se": "Software Engineering",
+            "wt": "Web Technologies",
+            "mwd": "Modern Web Development",
+            "stm": "Software Testing Methodologies",
+            "oops": "Object Oriented Programming",
+            "java": "Java Programming",
+            "python": "Python Programming",
+            "cpp": "C++ Programming",
+            "cp": "C Programming",
+            "coa": "Computer Organization and Architecture",
+            "ai": "Artificial Intelligence",
+            "ml": "Machine Learning",
+            "dl": "Deep Learning",
+            "nlp": "Natural Language Processing",
+            "dv": "Data Visualization",
+            "bee": "Basic Electrical Engineering",
+            "edc": "Electronic Devices and Circuits",
+            "dld": "Digital Logic Design",
+            "stld": "Switching Theory and Logic Design",
+            "ss": "Signals and Systems",
+            "cs": "Control Systems",
+            "eg": "Engineering Graphics",
+            "es": "Environmental Science"
+        };
+
+        // Check for exact match in mapping
+        if (mappings[lower]) return mappings[lower];
+        
+        // Check for partial matches/common variations
+        if (lower.includes('discrete')) return "Discrete Mathematics";
+        if (lower.includes('operating')) return "Operating Systems";
+        if (lower.includes('optimisation') || lower.includes('optimization')) return "Mathematical Optimization";
+        if (lower.includes('structure')) return "Data Structures";
+        if (lower.includes('algo')) return "Design and Analysis of Algorithms";
+        if (lower.includes('network')) return "Computer Networks";
+        
+        // Default: Capitalize First Letter of Each Word
+        return name.trim().replace(/\b\w/g, l => l.toUpperCase());
+    }
+    return name;
+};
+
 // --- MAIN PAGE ---
 
 export default function Home() {
@@ -453,17 +540,62 @@ export default function Home() {
     } catch { handleToast("Delete failed.", 'error'); } finally { setGlobalLoading(false); } 
   };
 
-  const colleges = useMemo(() => [...new Set(["JNTUH", "Osmania University", "CBIT", "VNR VJIET", "Vasavi College", "Gokaraju Rangaraju", "Sreenidhi (SNIST)", "Mahindra University", "IIT Hyderabad", "IIIT Hyderabad", "KL University", ...resources.map(r => r.college?.trim()).filter(Boolean)])].sort(), [resources]);
-  const subjects = useMemo(() => !selectedCollege ? [] : ['All', ...new Set(resources.filter(r => r.college?.toLowerCase() === selectedCollege.toLowerCase() || !r.college).map(r => r.subject?.toUpperCase().trim()))].filter(Boolean), [resources, selectedCollege]);
+  // --- UPDATED LOGIC TO FIX FRAGMENTATION (KLH/KLh & DM/Discrete Maths) ---
+  
+  const colleges = useMemo(() => {
+    // We create a Set of normalized names to remove duplicates
+    const uniqueNormalized = new Set();
+    resources.forEach(r => {
+        if(r.college) {
+            uniqueNormalized.add(normalizeName(r.college, 'college'));
+        }
+    });
+    // Convert back to array and sort
+    return Array.from(uniqueNormalized).sort();
+  }, [resources]);
+
+  const subjects = useMemo(() => {
+    if (!selectedCollege) return [];
+    
+    // 1. Filter resources that MATCH the normalized college name
+    const relevantResources = resources.filter(r => 
+        normalizeName(r.college || '', 'college') === selectedCollege
+    );
+    
+    // 2. Extract and Normalize subjects
+    const uniqueSubs = new Set();
+    relevantResources.forEach(r => {
+        if(r.subject) {
+            uniqueSubs.add(normalizeName(r.subject, 'subject'));
+        }
+    });
+    
+    return Array.from(uniqueSubs).sort();
+  }, [resources, selectedCollege]);
 
   const filteredResources = useMemo(() => {
     let res = [...resources];
-    if (activeTab === 'library') res = res.filter(r => r.ownerId === user?.uid || r.approvedUsers?.some((a: any) => a.uid === user?.uid));
-    else if (activeTab === 'marketplace') {
-       if (selectedCollege) res = res.filter(r => !r.college || r.college.toLowerCase().includes(selectedCollege.toLowerCase()));
-       if (selectedSubject && selectedSubject !== 'All') res = res.filter(r => r.subject?.toUpperCase() === selectedSubject);
+    
+    if (activeTab === 'library') {
+        res = res.filter(r => r.ownerId === user?.uid || r.approvedUsers?.some((a: any) => a.uid === user?.uid));
+    } else if (activeTab === 'marketplace') {
+       // Filter by Normalized College
+       if (selectedCollege) {
+           res = res.filter(r => normalizeName(r.college || '', 'college') === selectedCollege);
+       }
+       // Filter by Normalized Subject
+       if (selectedSubject && selectedSubject !== 'All') {
+           res = res.filter(r => normalizeName(r.subject || '', 'subject') === selectedSubject);
+       }
     }
-    if (searchQuery) res = res.filter(r => r.title?.toLowerCase().includes(searchQuery.toLowerCase()) || r.subject?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (searchQuery) {
+        res = res.filter(r => 
+            r.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            r.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
+    
     return res.sort((a, b) => sortBy === 'newest' ? (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) : (Number(a.price) || 0) - (Number(b.price) || 0));
   }, [resources, activeTab, selectedCollege, selectedSubject, searchQuery, sortBy, user]);
 
@@ -689,12 +821,12 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all"><Menu size={24} className="text-[#001E2B]" /></button>}
+      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block md:hidden"><Menu size={24} className="text-[#001E2B]" /></button>}
 
       <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         ${viewingFile || paymentResource ? '-translate-x-full' : ''} 
-        md:translate-x-0:false`}>
+        md:translate-x-0`}>
          <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} onClose={() => setIsSidebarOpen(false)} />
          <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden text-white"><X /></button>
       </div>
@@ -801,7 +933,7 @@ export default function Home() {
             {/* LEVEL 1: Colleges */}
             {!viewingFile && !paymentResource && activeTab === 'marketplace' && !selectedCollege && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-                {colleges.map(college => (
+                {colleges.map((college: any) => (
                 <button key={college} onClick={() => setSelectedCollege(college)} className="group bg-white/60 backdrop-blur-md p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
                     <div className="p-4 md:p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-6 md:mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><School size={28} /></div>
                     <h3 className="text-xl md:text-2xl font-bold text-[#001E2B] relative z-10">{college}</h3>
@@ -816,7 +948,7 @@ export default function Home() {
             <div className="space-y-6">
                 <button onClick={() => setSelectedCollege(null)} className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-[#00ED64] flex items-center gap-2"><ArrowLeft size={16}/> Back to Colleges</button>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-                {subjects.length > 0 ? subjects.map(sub => (
+                {subjects.length > 0 ? subjects.map((sub: any) => (
                     <button key={sub} onClick={() => setSelectedSubject(sub)} className="group bg-white/60 backdrop-blur-md p-6 md:p-10 rounded-[32px] md:rounded-[40px] border border-white hover:border-[#00ED64] transition-all text-left relative overflow-hidden shadow-lg hover:-translate-y-2">
                     <div className="p-4 md:p-5 bg-[#00ED64]/10 rounded-3xl w-fit mb-6 md:mb-8 text-[#00684A] group-hover:bg-[#00ED64] group-hover:text-[#001E2B] transition-colors"><LayoutGrid size={28} /></div>
                     <h3 className="text-xl md:text-2xl font-bold text-[#001E2B] relative z-10">{sub}</h3>
