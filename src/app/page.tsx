@@ -15,7 +15,6 @@ import {
   User, 
   signOut, 
   signInWithPopup, 
-  getRedirectResult, 
   GoogleAuthProvider,
   setPersistence,
   browserLocalPersistence
@@ -47,7 +46,9 @@ const MASTER_COLLEGES = [
   "Mahindra University",
   "IIT Hyderabad",
   "IIIT Hyderabad",
-  "BITS Hyderabad"
+  "BITS Hyderabad",
+  "NIT Warangal",
+  "BVRIT"
 ];
 
 // --- VISUAL COMPONENTS ---
@@ -307,6 +308,8 @@ const normalizeName = (name: string, type: 'college' | 'subject', itemGroup?: st
         if (lower.includes('iit') && lower.includes('hyd')) return "IIT Hyderabad";
         if (lower.includes('iiit') && lower.includes('hyd')) return "IIIT Hyderabad";
         if (lower.includes('bits') && lower.includes('hyd')) return "BITS Hyderabad";
+        if (lower.includes('nit') && lower.includes('warangal')) return "NIT Warangal";
+        if (lower.includes('bvrit')) return "BVRIT";
         
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -369,6 +372,7 @@ export default function Home() {
   const isFirstLoad = useRef(true);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+  // FIX: Start loading as true, but handle in auth listener
   const [globalLoading, setGlobalLoading] = useState(true); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -407,24 +411,23 @@ export default function Home() {
       setTimeout(() => setToast(null), 4000); 
   };
 
-  // --- MOBILE LOGIN FIX: DIRECT POPUP + AUTH LISTENER ---
-  
+  // --- AUTH LISTENER & DOMAIN CHECK ---
   useEffect(() => {
-    // 1. Ignore redirect result errors silently
-    getRedirectResult(auth).catch(() => {});
-
-    // 2. Main Auth State Listener
+    // Standard Auth Listener
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (currentUser) {
             const email = currentUser.email || '';
-            const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\.in|jntuh\.ac\.in)$/;
+            
+            // ALLOW ALL .IN and .EDU MAILS
+            const isAllowed = email.endsWith('.in') || email.endsWith('.edu');
 
-            if (!allowedDomains.test(email)) {
+            if (!isAllowed) {
                 await signOut(auth);
-                handleToast("Access Restricted: College Email Required.", "error");
+                handleToast("Access Restricted: Official College Email Required.", "error");
                 setUser(null);
             } else {
                 setUser(currentUser);
+                // Load Resources only when user is valid
                 const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
                 onSnapshot(q, {
                     next: (snap) => setResources(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -442,9 +445,9 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // UPDATED Login Handler: Forces Popup Only (No Redirect Fallback to prevent loops)
+  // UPDATED Login Handler: Forces Popup Only + Local Persistence (Fixes Mobile)
   const handleLogin = async () => {
-    // DO NOT SET LOADING TRUE HERE - IT BLOCKS POPUPS ON IOS
+    // NOTE: DO NOT SET GLOBAL LOADING HERE. It blocks the popup on iOS.
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -454,7 +457,7 @@ export default function Home() {
     } catch (error: any) {
         console.error("Login Error:", error);
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-             handleToast("Pop-up was blocked. Please tap again.", "error");
+             handleToast("Pop-up blocked. Please tap again.", "error");
         } else {
              handleToast("Login failed. Please try again.", "error");
         }
@@ -758,21 +761,20 @@ export default function Home() {
     try {
         setGlobalLoading(true);
         const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const email = result.user.email || '';
         
-        // ALLOWED DOMAINS REGEX
-        const allowedDomains = /@(klh\.edu\.in|cbit\.ac\.in|vce\.ac\.in|osmania\.ac\\.in|jntuh\.ac\.in)$/;
-
-        if (!allowedDomains.test(email)) {
-            await signOut(auth); // Instant logout if invalid
-            handleToast("Access Restricted: Please use your official College Email ID.", "error");
-        } else {
-            handleToast("Welcome back!", "success");
-        }
+        // This makes sure user must select account every time (helps with stuck sessions)
+        provider.setCustomParameters({ prompt: 'select_account' });
+        
+        // Use Popup - works best on mobile if triggered directly
+        await signInWithPopup(auth, provider);
+        
     } catch (error: any) {
         console.error(error);
-        handleToast("Login failed. Please try again.", "error");
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+            handleToast("Popup blocked. Please allow popups or tap again.", "error");
+        } else {
+            handleToast("Login failed. Please try again.", "error");
+        }
     } finally {
         setGlobalLoading(false);
     }
@@ -864,12 +866,14 @@ export default function Home() {
       {globalLoading && <GlobalLoaderOverlay text="Processing..." />}
       {toast && <CloudToast msg={toast.msg} type={toast.type} />}
 
-      {!isSidebarOpen && !viewingFile && !paymentResource && <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block md:hidden"><Menu size={24} className="text-[#001E2B]" /></button>}
+      {!isSidebarOpen && !viewingFile && !paymentResource && (
+         <button onClick={() => setIsSidebarOpen(true)} className="fixed top-6 left-6 z-[100] p-3 bg-white/90 rounded-xl shadow-lg border hover:scale-110 transition-all block"><Menu size={24} className="text-[#001E2B]" /></button>
+      )}
 
       <div className={`fixed top-0 left-0 h-full z-40 transition-transform duration-500 ease-in-out 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-        ${viewingFile || paymentResource ? '-translate-x-full' : ''} 
-        md:translate-x-0`}>
+        ${viewingFile || paymentResource ? '-translate-x-full' : ''}`}
+      >
          <Sidebar setActiveTab={setActiveTab} activeTab={activeTab} notificationCount={notificationCount} onClose={() => setIsSidebarOpen(false)} />
          <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 md:hidden text-white"><X /></button>
       </div>
