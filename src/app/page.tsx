@@ -24,7 +24,7 @@ import ReactMarkdown from 'react-markdown';
 // FIX: Use Environment Variable for Vercel Deployment
 const OPENROUTER_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
-// --- 1. DEFINE MASTER COLLEGES LIST HERE ---
+// --- 1. MASTER LIST OF COLLEGES (Always Visible) ---
 const MASTER_COLLEGES = [
   "KL University",
   "JNTUH",
@@ -278,11 +278,12 @@ const ChatWindow = ({ chat: initialChat, user, onClose, onSend, onRead }: any) =
   );
 };
 
-// --- DATA NORMALIZER HELPER ---
+// --- DATA NORMALIZER HELPER (UPDATED SMART LOGIC) ---
 const normalizeName = (name: string, type: 'college' | 'subject') => {
     if (!name) return '';
     const lower = name.trim().toLowerCase().replace(/\./g, '');
     
+    // 1. COLLEGE NORMALIZATION
     if (type === 'college') {
         if (lower.includes('kl') || lower.includes('koneru')) return "KL University";
         if (lower.includes('cbit')) return "CBIT";
@@ -300,7 +301,16 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
         return name.trim().replace(/\b\w/g, l => l.toUpperCase());
     }
     
+    // 2. SUBJECT NORMALIZATION (SMART KEYWORD DETECTION)
     if (type === 'subject') {
+        // A. Branch/Department Grouping based on keywords
+        if (lower.includes('cse') || lower.includes('computer science')) return "Computer Science (CSE)";
+        if (lower.includes('ece') || lower.includes('electronic') || lower.includes('circuit')) return "Electronics (ECE)";
+        if (lower.includes('eee') || lower.includes('electrical')) return "Electrical (EEE)";
+        if (lower.includes('mech') || lower.includes('mechanical')) return "Mechanical Engineering";
+        if (lower.includes('civil')) return "Civil Engineering";
+
+        // B. Common Subjects Mappings
         const mappings: { [key: string]: string } = {
             "dm": "Discrete Mathematics",
             "mfcs": "Discrete Mathematics",
@@ -310,6 +320,8 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
             "la": "Linear Algebra",
             "m1": "Mathematics I",
             "m2": "Mathematics II",
+            "maths": "Mathematics",
+            "mathematics": "Mathematics",
             "os": "Operating Systems",
             "cn": "Computer Networks",
             "dbms": "Database Management Systems",
@@ -346,6 +358,9 @@ const normalizeName = (name: string, type: 'college' | 'subject') => {
         };
 
         if (mappings[lower]) return mappings[lower];
+        
+        // C. Partial Matches for Subjects
+        if (lower.includes('math')) return "Mathematics";
         if (lower.includes('discrete')) return "Discrete Mathematics";
         if (lower.includes('operating')) return "Operating Systems";
         if (lower.includes('optimisation') || lower.includes('optimization')) return "Mathematical Optimization";
@@ -549,28 +564,29 @@ export default function Home() {
     } catch { handleToast("Delete failed.", 'error'); } finally { setGlobalLoading(false); } 
   };
 
-  // --- UPDATED LOGIC: MASTER LIST + DB LIST ---
-  // This ensures all colleges show even with 0 assets
+  // --- REPLACED COLLEGE LOGIC: MASTER LIST + DB LIST ---
   const colleges = useMemo(() => {
-    // 1. Start with Master List
+    // 1. Start with MASTER list to ensure they always show even if empty
     const allColleges = new Set(MASTER_COLLEGES);
     
-    // 2. Add found colleges from DB
+    // 2. Add any others found in the database (custom ones)
     resources.forEach(r => {
         if(r.college) {
             allColleges.add(normalizeName(r.college, 'college'));
         }
     });
     
-    // 3. Convert to array and sort
+    // 3. Sort alphabetically
     return Array.from(allColleges).sort();
   }, [resources]);
 
   const subjects = useMemo(() => {
     if (!selectedCollege) return [];
+    // Filter resources matching the normalized college name
     const relevantResources = resources.filter(r => 
         normalizeName(r.college || '', 'college') === selectedCollege
     );
+    // Normalize subjects
     const uniqueSubs = new Set();
     relevantResources.forEach(r => {
         if(r.subject) {
@@ -586,9 +602,11 @@ export default function Home() {
     if (activeTab === 'library') {
         res = res.filter(r => r.ownerId === user?.uid || r.approvedUsers?.some((a: any) => a.uid === user?.uid));
     } else if (activeTab === 'marketplace') {
+       // Filter by Normalized College
        if (selectedCollege) {
            res = res.filter(r => normalizeName(r.college || '', 'college') === selectedCollege);
        }
+       // Filter by Normalized Subject
        if (selectedSubject && selectedSubject !== 'All') {
            res = res.filter(r => normalizeName(r.subject || '', 'subject') === selectedSubject);
        }
@@ -604,6 +622,7 @@ export default function Home() {
     return res.sort((a, b) => sortBy === 'newest' ? (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0) : (Number(a.price) || 0) - (Number(b.price) || 0));
   }, [resources, activeTab, selectedCollege, selectedSubject, searchQuery, sortBy, user]);
 
+  // --- REST OF THE LOGIC ---
   useEffect(() => {
     if (viewingFile && user && isPenActive && canvasRef.current) {
       const loadStudyData = async () => {
