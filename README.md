@@ -1,5 +1,5 @@
 **LIVE LINK :** [https://campus-share-eight.vercel.app/]
-
+**DOWNLOAD APP :**[https://drive.google.com/drive/folders/1j92PjVVcB7GuwGo09mnEFYfo1PCToDzv?usp=sharing]
 
 **NOTE-1: LOGIN ONLY THROUGH YOUR COLLEGE DOMAIN.
 IF LOGIN IN USING GOOGLE, USE COLLEGE GOOGLE ACCOUNT ONLY.
@@ -11,6 +11,23 @@ THANK YOU**
 BUT USE ONLY THROUGH COLLEGE MAIL AND USE IT IN GOOGLE OR CHROME.
 THANK YOU**
 
+
+**NOTE-3: THE DOWNLOAD LINK WILL REDIRECT YOU TO GOOGLE DRIVE
+BASED ON YOUR NEED DOWNLOAD THE APP AND USE IT.
+THE IOS AND MAC ARE STILL IN PROGRESS, ONCE DONE
+WE WILL NOTIFY YOU.
+THANK YOU**
+
+
+**NOTE-4: Thank You for Using Campus Share!
+We truly appreciate you downloading and using our application. This project was built with the goal of making campus resource sharing easier and more efficient for everyone.
+Need Help or Have Feedback? If you encounter any bugs or have suggestions for improvement, please reach out to our support team:
+**
+University Mail: [2420030604@klh.edu.in]
+Personal Mail: [akshay.shashank.brahma@gmail.com]
+**
+What's Next? This is just the beginning! We are actively working on new features and have more exciting projects in the pipeline. Stay tuned for updates.
+THANK YOU**
 
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
