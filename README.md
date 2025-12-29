@@ -19,17 +19,14 @@ WE WILL NOTIFY YOU.
 THANK YOU**
 
 
-**NOTE-4: Thank You for Using Campus Share!
-We truly appreciate you downloading and using our application. This project was built with the goal of making campus resource sharing easier and more efficient for everyone.
-Need Help or Have Feedback? If you encounter any bugs or have suggestions for improvement, please reach out to our support team:**
-
+**NOTE-4: THANK YOU FOR USING CAMPUS SHARE! WE TRULY APPRECIATE YOU DOWNLOADING AND USING OUR APPLICATION. THIS PROJECT WAS BUILT WITH THE GOAL OF MAKING CAMPUS RESOURCE SHARING EASIER AND MORE EFFICIENT FOR EVERYONE. NEED HELP OR HAVE FEEDBACK? IF YOU ENCOUNTER ANY BUGS OR HAVE SUGGESTIONS FOR IMPROVEMENT, PLEASE REACH OUT TO OUR SUPPORT TEAM:**
 
 **Name:** AKSHAY KUMAR REDDY CHAVVA<br>
 **University Mail:** 2420030604@klh.edu.in<br>
 **Personal Mail:** akshay.shashank.brahma@gmail.com
 
 
-**What's Next? This is just the beginning! We are actively working on new features and have more exciting projects in the pipeline. Stay tuned for updates.
+**WHAT'S NEXT? THIS IS JUST THE BEGINNING! WE ARE ACTIVELY WORKING ON NEW FEATURES AND HAVE MORE EXCITING PROJECTS IN THE PIPELINE. STAY TUNED FOR UPDATES.<br>
 THANK YOU**
 
 
