@@ -21,17 +21,15 @@ THANK YOU**
 
 **NOTE-4: Thank You for Using Campus Share!
 We truly appreciate you downloading and using our application. This project was built with the goal of making campus resource sharing easier and more efficient for everyone.
-Need Help or Have Feedback? If you encounter any bugs or have suggestions for improvement, please reach out to our support team:
-**
+Need Help or Have Feedback? If you encounter any bugs or have suggestions for improvement, please reach out to our support team:**
 
-**
-Name: [AKSHAY KUMAR REDDY CHAVVA]
-University Mail: [2420030604@klh.edu.in]
-Personal Mail: [akshay.shashank.brahma@gmail.com]
-**
 
-**
-What's Next? This is just the beginning! We are actively working on new features and have more exciting projects in the pipeline. Stay tuned for updates.
+**Name:** AKSHAY KUMAR REDDY CHAVVA<br>
+**University Mail:** 2420030604@klh.edu.in<br>
+**Personal Mail:** akshay.shashank.brahma@gmail.com
+
+
+**What's Next? This is just the beginning! We are actively working on new features and have more exciting projects in the pipeline. Stay tuned for updates.
 THANK YOU**
 
 
